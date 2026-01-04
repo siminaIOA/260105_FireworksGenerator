@@ -112,10 +112,13 @@ const CASCADE_GRAVITY_SCALE_MULTIPLIER = 1.1;
 const CASCADE_GRAVITY_RAMP_BOOST = 0.6;
 const CASCADE_DRAG_BOOST = 0.015;
 const DROOP_TRAIL_CHANCE = 0.35;
-const DROOP_GRAVITY_SCALE_MULTIPLIER = 1.35;
-const DROOP_GRAVITY_RAMP_BOOST = 0.9;
-const DROOP_DRAG_BOOST = 0.02;
-const DROOP_LIFE_MULTIPLIER = 1.2;
+const DROOP_TRAIL_SAMPLES = [40, 64];
+const DROOP_TRAIL_POINT_SCALE = 1.1;
+const DROOP_TRAIL_BRIGHTNESS = 1.4;
+const DROOP_GRAVITY_SCALE_MULTIPLIER = 1.6;
+const DROOP_GRAVITY_RAMP_BOOST = 1.3;
+const DROOP_DRAG_BOOST = 0.03;
+const DROOP_LIFE_MULTIPLIER = 1.4;
 const TRAJECTORY_VARIANT_CHANCE = 0.3;
 const TRAJECTORY_VARIANTS = [
   { name: "zigzag", strength: [8, 16], speed: [6, 12] },
@@ -1498,6 +1501,7 @@ class Firework {
     this.trailSamples = options.trailSamples ?? 2;
     this.trailPointScale = options.trailPointScale ?? 1;
     this.trailWidthScale = options.trailWidthScale ?? 1;
+    this.trailBrightness = options.trailBrightness ?? 1;
     this.trailHistory = options.trailHistory ?? false;
     this.spiralStrength = options.spiralStrength ?? 0;
     this.spiralSpeed = options.spiralSpeed ?? 0;
@@ -1621,9 +1625,9 @@ class Firework {
       const trailOffset = i * this.trailSamples * 3;
       for (let s = 0; s < this.trailSamples; s += 1) {
         const tIdx = trailOffset + s * 3;
-        this.trailColors[tIdx] = color.r;
-        this.trailColors[tIdx + 1] = color.g;
-        this.trailColors[tIdx + 2] = color.b;
+        this.trailColors[tIdx] = color.r * this.trailBrightness;
+        this.trailColors[tIdx + 1] = color.g * this.trailBrightness;
+        this.trailColors[tIdx + 2] = color.b * this.trailBrightness;
         if (this.trailHistory) {
           this.trailPositions[tIdx] = origin.x;
           this.trailPositions[tIdx + 1] = origin.y;
@@ -1803,6 +1807,7 @@ class Firework {
         0
       );
       const trailFade = Math.pow(trailBase, TRAIL_FADE_POWER);
+      const trailIntensity = trailFade * this.trailBrightness;
 
       if (this.trailHistory) {
         let headIndex = this.trailHistoryIndex[i];
@@ -1819,7 +1824,7 @@ class Firework {
           const order = (headIndex - s + this.trailSamples) % this.trailSamples;
           const tIdx = trailOffset + order * 3;
           const falloff = Math.pow(1 - s / denom, 1.6);
-          const fade = trailFade * falloff;
+          const fade = trailIntensity * falloff;
           this.trailColors[tIdx] = this.baseColors[idx] * fade;
           this.trailColors[tIdx + 1] = this.baseColors[idx + 1] * fade;
           this.trailColors[tIdx + 2] = this.baseColors[idx + 2] * fade;
@@ -1839,9 +1844,9 @@ class Firework {
           this.trailPositions[tIdx + 1] = tailY + (ny - tailY) * t;
           this.trailPositions[tIdx + 2] = tailZ + (nz - tailZ) * t;
 
-          this.trailColors[tIdx] = this.baseColors[idx] * trailFade;
-          this.trailColors[tIdx + 1] = this.baseColors[idx + 1] * trailFade;
-          this.trailColors[tIdx + 2] = this.baseColors[idx + 2] * trailFade;
+          this.trailColors[tIdx] = this.baseColors[idx] * trailIntensity;
+          this.trailColors[tIdx + 1] = this.baseColors[idx + 1] * trailIntensity;
+          this.trailColors[tIdx + 2] = this.baseColors[idx + 2] * trailIntensity;
         }
       }
     }
@@ -1893,7 +1898,7 @@ function buildExplosionOptions(profile, hueBase) {
   const bigRadiusBoost = bigVariant ? BIG_RADIUS_MULTIPLIER : 1;
   const bigTrailBoost = bigVariant ? BIG_TRAIL_MULTIPLIER : 1;
   const bigParticleBoost = bigVariant ? BIG_PARTICLE_MULTIPLIER : 1;
-  const trajectoryTrail = bendTrails || cascadeTrail;
+  const trajectoryTrail = bendTrails || cascadeTrail || droopTrail;
   const dotTrailChance = profile.dotTrailChance ?? DOT_TRAIL_CHANCE;
   const dotTrail = trajectoryTrail || Math.random() < dotTrailChance;
   const dotTrailSamples = scaleTrailSamples(
@@ -1902,6 +1907,7 @@ function buildExplosionOptions(profile, hueBase) {
   const extremeTrailSamples = scaleTrailSamples(EXTREME_TRAIL_SAMPLES);
   const trajectoryTrailSamples = scaleTrailSamples(TRAJECTORY_TRAIL_SAMPLES);
   const cascadeTrailSamples = scaleTrailSamples(CASCADE_TRAIL_SAMPLES);
+  const droopTrailSamples = scaleTrailSamples(DROOP_TRAIL_SAMPLES);
   let trailSamples = extremeTrajectory
     ? randInt(extremeTrailSamples[0], extremeTrailSamples[1])
     : trajectoryTrail
@@ -1912,10 +1918,15 @@ function buildExplosionOptions(profile, hueBase) {
   if (cascadeTrail) {
     trailSamples = randInt(cascadeTrailSamples[0], cascadeTrailSamples[1]);
   }
+  if (droopTrail) {
+    const droopSamples = randInt(droopTrailSamples[0], droopTrailSamples[1]);
+    trailSamples = Math.max(trailSamples, droopSamples);
+  }
   const trailPointScale = dotTrail
     ? DOT_TRAIL_DOT_SCALE *
       (extremeTrajectory ? EXTREME_TRAIL_POINT_SCALE : 1) *
-      (cascadeTrail ? CASCADE_TRAIL_POINT_SCALE : 1)
+      (cascadeTrail ? CASCADE_TRAIL_POINT_SCALE : 1) *
+      (droopTrail ? DROOP_TRAIL_POINT_SCALE : 1)
     : 1;
   const trailWidthScale = range(TRAIL_WIDTH_RANGE);
   const particleScale =
@@ -1984,6 +1995,7 @@ function buildExplosionOptions(profile, hueBase) {
       : 1;
   const directionRotation = randomRotationQuaternion();
   const directionMirror = randomMirrorVector();
+  const trailBrightness = droopTrail ? DROOP_TRAIL_BRIGHTNESS : 1;
   const baseDrag = range(profile.drag);
   const dragBoost =
     (cascadeTrail ? CASCADE_DRAG_BOOST : 0) +
@@ -2041,6 +2053,7 @@ function buildExplosionOptions(profile, hueBase) {
     trailSamples,
     trailPointScale,
     trailWidthScale,
+    trailBrightness,
     directionRotation,
     directionMirror,
     spiralStrength,
