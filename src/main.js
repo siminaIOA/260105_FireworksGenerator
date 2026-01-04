@@ -80,18 +80,21 @@ const MULTI_BLAST_DELAY = [0.05, 0.18];
 const MULTI_BLAST_SPREAD = [30, 120];
 const MULTI_BLAST_RADIUS_SCALE = 0.65;
 const MULTI_BLAST_COUNT_SCALE = 0.7;
-const BIG_VARIANT_CHANCE = 0.25;
-const BIG_RADIUS_MULTIPLIER = 1.3;
+const BIG_VARIANT_CHANCE = 0.3;
+const BIG_RADIUS_MULTIPLIER = 2.5;
 const BIG_TRAIL_MULTIPLIER = 1;
 const BIG_PARTICLE_MULTIPLIER = 1;
 const MULTI_HUE_CHANCE = 0.25;
 const HUE_VARIANCE_BOOST = [0.06, 0.22];
 const MAX_HUE_VARIANCE = 0.35;
 const LONG_TRAIL_CHANCE = 0.5;
-const LONG_TRAIL_MULTIPLIER = 1.5;
-const LONG_LIFE_MULTIPLIER = 1.25;
+const LONG_TRAIL_MULTIPLIER = 2.75;
+const LONG_LIFE_MULTIPLIER = 1.35;
 const LONG_TRAIL_GROWTH = 2.6;
 const LONG_GRAVITY_RAMP_BOOST = 0.8;
+const LIFE_BOOST_CHANCE = 0.33;
+const LIFE_BOOST_MULTIPLIER = 1.5;
+const LIFE_BOOST_TRAIL_MULTIPLIER = 2.5;
 const LENGTH_BOOST_CHANCE = 0.55;
 const LENGTH_BOOST_MULTIPLIER = 2.5;
 const BEND_TRAIL_CHANCE = 1;
@@ -115,7 +118,7 @@ const CURLY_GRAVITY_RAMP_BOOST = 0.8;
 const CURLY_TRAIL_GROWTH_BOOST = 1.2;
 const TRAIL_WIDTH_RANGE = [0.35, 4.2];
 const PARTICLE_SCALE = 0.6;
-const SPHERICAL_BIAS = 0.8;
+const SPHERICAL_BIAS = 0.45;
 const SPHERE_DENSITY_BOOST = 1.45;
 const SPHERE_RADIUS_BOOST = 0.9;
 const SPHERICAL_CURLY_CHANCE = 0.35;
@@ -123,9 +126,9 @@ const SPHERICAL_CURLY_BOOST = 1.7;
 const SPHERICAL_SPIRAL_STRENGTH = [12, 22];
 const SPHERICAL_SPIRAL_SPEED = [4.5, 7.5];
 const FLASH_CHANCE = 0.65;
-const FLASH_LIFE = [0.05, 0.1];
-const FLASH_SIZE = [40, 90];
-const FLASH_OPACITY = [0.8, 1];
+const FLASH_LIFE = [0.04, 0.08];
+const FLASH_SIZE = [70, 140];
+const FLASH_OPACITY = [0.9, 1];
 const explosionProfiles = [
   {
     pattern: "burst",
@@ -1581,8 +1584,11 @@ function buildExplosionOptions(profile, hueBase) {
   const lengthBoost = Math.random() < LENGTH_BOOST_CHANCE;
   const lengthMultiplier = lengthBoost ? LENGTH_BOOST_MULTIPLIER : 1;
   const swirlTrails = Math.random() < SWIRL_TRAIL_CHANCE;
+  const lifeBoost = Math.random() < LIFE_BOOST_CHANCE;
+  const lifeTrailMultiplier = lifeBoost ? LIFE_BOOST_TRAIL_MULTIPLIER : 1;
   const lifeScale =
     (longTrail ? LONG_LIFE_MULTIPLIER : 1) *
+    (lifeBoost ? LIFE_BOOST_MULTIPLIER : 1) *
     (trajectoryTrail ? TRAJECTORY_LIFE_MULTIPLIER : 1) *
     (extremeTrajectory ? EXTREME_LIFE_MULTIPLIER : 1);
   const trailGrowth = Math.max(
@@ -1633,6 +1639,7 @@ function buildExplosionOptions(profile, hueBase) {
       dotTrailBoost *
       longTrailBoost *
       lengthMultiplier *
+      lifeTrailMultiplier *
       bigTrailBoost *
       trajectoryTrailBoost *
       extremeTrailBoost,
