@@ -52,7 +52,7 @@ const camera = new THREE.OrthographicCamera(
 camera.position.z = 200;
 
 const clock = new THREE.Clock();
-const gravity = new THREE.Vector3(0, -32, 0);
+const gravity = new THREE.Vector3(0, -96, 0);
 let elapsedTime = 0;
 let lastClickSignature = "";
 
@@ -60,7 +60,7 @@ const fireworks = [];
 const flashes = [];
 const detonationQueue = [];
 const BLAST_SCALE = 8.775;
-const TRAIL_SCALE = 2.835;
+const TRAIL_SCALE = 5.5;
 const GLOBAL_LIFE_SCALE = 1.35;
 const EXTRA_SCALE = 1.75;
 const EXTRA_SCALE_CHANCE = 0.3;
@@ -71,11 +71,12 @@ const DOT_TRAIL_MULTIPLIER = 2.6;
 const DOT_TRAIL_DOT_SCALE = 1.2;
 const DOT_PARTICLE_SCALE = 1.1;
 const DOT_TRAIL_SAMPLES = [5, 9];
+const TRAIL_SAMPLE_SCALE = 0.5625;
 const MULTI_CLICK_CHANCE = 0;
 const MULTI_CLICK_COUNT = [2, 4];
 const MULTI_CLICK_DELAY = [0.05, 0.18];
 const MULTI_CLICK_SPREAD = [0, 140];
-const MULTI_BLAST_CHANCE = 0.2;
+const MULTI_BLAST_CHANCE = 0.3;
 const MULTI_BLAST_COUNT = [2, 4];
 const MULTI_BLAST_DELAY = [0.05, 0.18];
 const MULTI_BLAST_SPREAD = [30, 120];
@@ -83,9 +84,9 @@ const MULTI_BLAST_RADIUS_SCALE = 0.65;
 const MULTI_BLAST_COUNT_SCALE = 0.7;
 const BIG_VARIANT_CHANCE = 0.45;
 const BIG_RADIUS_MULTIPLIER = 1.45;
-const BIG_TRAIL_MULTIPLIER = 1;
+const BIG_TRAIL_MULTIPLIER = 3;
 const BIG_PARTICLE_MULTIPLIER = 1;
-const MULTI_HUE_CHANCE = 0.25;
+const MULTI_HUE_CHANCE = 0.4;
 const HUE_VARIANCE_BOOST = [0.06, 0.22];
 const MAX_HUE_VARIANCE = 0.35;
 const LONG_TRAIL_CHANCE = 0.4;
@@ -103,6 +104,12 @@ const CURLY_TRAIL_CHANCE = 0.3;
 const SWIRL_TRAIL_CHANCE = 0.35;
 const SWIRL_STRENGTH = [8, 18];
 const SWIRL_SPEED = [5, 12];
+const TRAJECTORY_VARIANT_CHANCE = 0.3;
+const TRAJECTORY_VARIANTS = [
+  { name: "zigzag", strength: [8, 16], speed: [6, 12] },
+  { name: "corkscrew", strength: [6, 12], speed: [6, 10] },
+  { name: "flutter", strength: [4, 10], speed: [8, 14] },
+];
 const EXTREME_TRAIL_CHANCE = 0.35;
 const EXTREME_TRAIL_MULTIPLIER = 12;
 const EXTREME_LIFE_MULTIPLIER = 1.6;
@@ -119,10 +126,16 @@ const CURLY_GRAVITY_RAMP_BOOST = 0.8;
 const CURLY_TRAIL_GROWTH_BOOST = 1.2;
 const TRAIL_WIDTH_RANGE = [0.35, 4.2];
 const PARTICLE_SCALE = 0.6;
-const SPHERICAL_BIAS = 0.61;
+const EXTRA_LONG_TRAIL_CHANCE = 0.45;
+const EXTRA_LONG_TRAIL_MULTIPLIER = 7;
+const AXIS_FLIP_CHANCE = 0.5;
+const SPHERICAL_BIAS = 0.82;
+const SPHERICAL_EXTRA_LONG_TRAIL_CHANCE = 0.25;
+const SPHERICAL_EXTRA_LONG_TRAIL_MULTIPLIER = 35;
+const PURE_HUES = [0, 1 / 6, 1 / 3, 2 / 3];
 const SPHERE_DENSITY_BOOST = 1.45;
 const SPHERE_RADIUS_BOOST = 2.75;
-const SPHERE_TRAIL_MULTIPLIER = 15;
+const SPHERE_TRAIL_MULTIPLIER = 28;
 const SPHERE_SPEED_MULTIPLIER = 1.35;
 const SPHERE_LIFE_MULTIPLIER = 1.35;
 const SPHERICAL_CURLY_CHANCE = 0.35;
@@ -130,9 +143,9 @@ const SPHERICAL_CURLY_BOOST = 1.7;
 const SPHERICAL_SPIRAL_STRENGTH = [12, 22];
 const SPHERICAL_SPIRAL_SPEED = [4.5, 7.5];
 const FLASH_CHANCE = 0.65;
-const FLASH_LIFE = [0.04, 0.08];
-const FLASH_SIZE = [70, 140];
-const FLASH_OPACITY = [0.9, 1];
+const FLASH_LIFE = [0.03, 0.06];
+const FLASH_SIZE = [60, 120];
+const FLASH_OPACITY = [1, 1];
 const explosionProfiles = [
   {
     pattern: "burst",
@@ -354,6 +367,18 @@ const explosionProfiles = [
     dotTrailChance: 0.35,
     dotTrailSamples: [6, 12],
     spherical: true,
+  },
+  {
+    pattern: "cross",
+    count: [120, 240],
+    radius: [90, 210],
+    life: [1.4, 2.3],
+    trailStretch: [2.4, 5.0],
+    drag: [0.95, 0.985],
+    drift: { x: [-1.4, 1.4], y: [-1.2, 1.2], z: [-1.4, 1.4] },
+    pointSize: [1.4, 2.8],
+    gravityScale: [0.9, 1.1],
+    hueVariance: 0.08,
   },
   {
     pattern: "cross",
@@ -787,6 +812,54 @@ const explosionProfiles = [
     curveDecay: [0.6, 1.1],
     gravityRamp: [0.9, 1.3],
   },
+  {
+    pattern: "crescent",
+    count: [180, 340],
+    radius: [120, 270],
+    life: [1.5, 2.7],
+    trailStretch: [2.4, 5.2],
+    drag: [0.95, 0.985],
+    drift: { x: [-1.8, 1.8], y: [-1.2, 1.2], z: [-1.8, 1.8] },
+    pointSize: [1.3, 2.6],
+    gravityScale: [0.9, 1.2],
+    hueVariance: 0.1,
+    trailBoost: 2.2,
+    curveStrength: [10, 22],
+    curveDecay: [0.6, 1.1],
+    gravityRamp: [0.8, 1.3],
+  },
+  {
+    pattern: "diamond",
+    count: [160, 320],
+    radius: [110, 250],
+    life: [1.4, 2.5],
+    trailStretch: [2.2, 5.0],
+    drag: [0.95, 0.985],
+    drift: { x: [-1.6, 1.6], y: [-1.2, 1.2], z: [-1.6, 1.6] },
+    pointSize: [1.3, 2.6],
+    gravityScale: [0.9, 1.2],
+    hueVariance: 0.12,
+    trailBoost: 2.1,
+    curveStrength: [10, 22],
+    curveDecay: [0.6, 1.1],
+    gravityRamp: [0.8, 1.3],
+  },
+  {
+    pattern: "lattice",
+    count: [220, 420],
+    radius: [130, 290],
+    life: [1.6, 2.9],
+    trailStretch: [2.6, 5.6],
+    drag: [0.95, 0.985],
+    drift: { x: [-2.0, 2.0], y: [-1.2, 1.2], z: [-2.0, 2.0] },
+    pointSize: [1.3, 2.6],
+    gravityScale: [0.9, 1.2],
+    hueVariance: 0.1,
+    trailBoost: 2.3,
+    curveStrength: [12, 24],
+    curveDecay: [0.6, 1.1],
+    gravityRamp: [0.9, 1.3],
+  },
 ];
 
 function rand(min, max) {
@@ -803,6 +876,27 @@ function pick(list) {
 
 function range(pair) {
   return rand(pair[0], pair[1]);
+}
+
+function randomRotationQuaternion() {
+  return new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(
+      rand(0, Math.PI * 2),
+      rand(0, Math.PI * 2),
+      rand(0, Math.PI * 2)
+    )
+  );
+}
+
+function randomMirrorVector() {
+  const flip = () => (Math.random() < AXIS_FLIP_CHANCE ? -1 : 1);
+  return new THREE.Vector3(flip(), flip(), flip());
+}
+
+function scaleTrailSamples(samples) {
+  const scaledMin = Math.max(2, Math.round(samples[0] * TRAIL_SAMPLE_SCALE));
+  const scaledMax = Math.max(scaledMin, Math.round(samples[1] * TRAIL_SAMPLE_SCALE));
+  return [scaledMin, scaledMax];
 }
 
 function randomVec3(bounds) {
@@ -835,6 +929,11 @@ function randomDirection() {
     Math.sin(theta) * sinPhi,
     Math.cos(phi)
   );
+}
+
+function randomHorizontalDirection() {
+  const angle = rand(0, Math.PI * 2);
+  return new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
 }
 
 function fibonacciDirection(i, count) {
@@ -915,6 +1014,44 @@ function directionFor(pattern, i, count, data) {
       Math.cos(t) * radius,
       Math.sin(t) * radius,
       Math.cos(t * 0.3) * 0.35
+    ).normalize();
+  }
+
+  if (pattern === "crescent") {
+    const angle = (i / count) * Math.PI * 1.6 - Math.PI * 0.8;
+    const radius = 0.65 + 0.25 * Math.cos(angle * 0.6);
+    const x = Math.cos(angle) * radius + 0.35;
+    const y = Math.sin(angle) * radius;
+    return new THREE.Vector3(
+      x,
+      y,
+      rand(-0.15, 0.15)
+    ).normalize();
+  }
+
+  if (pattern === "diamond") {
+    const angle = (i / count) * Math.PI * 2;
+    const x = Math.cos(angle);
+    const y = Math.sin(angle);
+    const scale = 1 / (Math.abs(x) + Math.abs(y));
+    const radius = 0.75 + 0.15 * Math.sin(angle * 4);
+    return new THREE.Vector3(
+      x * scale * radius,
+      y * scale * radius,
+      rand(-0.12, 0.12)
+    ).normalize();
+  }
+
+  if (pattern === "lattice") {
+    const layers = 5;
+    const layer = i % layers;
+    const t = layers > 1 ? layer / (layers - 1) - 0.5 : 0;
+    const angle = (i / count) * Math.PI * 6;
+    const radius = 0.55 + 0.25 * Math.sin(angle * 1.5 + layer);
+    return new THREE.Vector3(
+      Math.cos(angle) * radius,
+      t * 0.85,
+      Math.sin(angle) * radius
     ).normalize();
   }
 
@@ -1354,6 +1491,13 @@ class Firework {
     this.spiralSpeed = options.spiralSpeed ?? 0;
     this.swirlStrength = options.swirlStrength ?? 0;
     this.swirlSpeed = options.swirlSpeed ?? 0;
+    this.trajectoryMode = options.trajectoryMode ?? null;
+    this.trajectoryStrength = options.trajectoryStrength ?? 0;
+    this.trajectorySpeed = options.trajectorySpeed ?? 0;
+    this.trajectoryPhase = null;
+    this.trajectoryVectors = null;
+    this.directionRotation = options.directionRotation ?? null;
+    this.directionMirror = options.directionMirror ?? null;
     this.gravityScale = options.gravityScale ?? 1;
     this.gravityRamp = options.gravityRamp ?? 0;
     this.curveStrength = options.curveStrength ?? 0;
@@ -1409,8 +1553,31 @@ class Firework {
       }
     }
 
+    if (this.trajectoryMode) {
+      this.trajectoryPhase = new Float32Array(this.count);
+      if (this.trajectoryMode === "zigzag" || this.trajectoryMode === "flutter") {
+        this.trajectoryVectors = new Float32Array(this.count * 3);
+      }
+      for (let i = 0; i < this.count; i += 1) {
+        this.trajectoryPhase[i] = rand(0, Math.PI * 2);
+        if (this.trajectoryVectors) {
+          const dir = randomHorizontalDirection();
+          const tIdx = i * 3;
+          this.trajectoryVectors[tIdx] = dir.x;
+          this.trajectoryVectors[tIdx + 1] = dir.y;
+          this.trajectoryVectors[tIdx + 2] = dir.z;
+        }
+      }
+    }
+
     for (let i = 0; i < this.count; i += 1) {
       const dir = directionFor(this.pattern, i, this.count, this.patternData);
+      if (this.directionMirror) {
+        dir.multiply(this.directionMirror);
+      }
+      if (this.directionRotation) {
+        dir.applyQuaternion(this.directionRotation);
+      }
       const speed = baseSpeed * rand(0.6, 1.2);
       const idx = i * 3;
 
@@ -1570,6 +1737,27 @@ class Firework {
         vz += Math.cos(swirl) * this.swirlStrength * swirlFactor * delta;
       }
 
+      if (this.trajectoryMode && this.trajectoryPhase) {
+        const phase = this.trajectoryPhase[i] + this.trajectorySpeed * age;
+        if (this.trajectoryMode === "zigzag" && this.trajectoryVectors) {
+          const tIdx = i * 3;
+          const zig = Math.sin(phase) * this.trajectoryStrength;
+          vx += this.trajectoryVectors[tIdx] * zig * delta;
+          vy += this.trajectoryVectors[tIdx + 1] * zig * delta;
+          vz += this.trajectoryVectors[tIdx + 2] * zig * delta;
+        } else if (this.trajectoryMode === "corkscrew") {
+          const spin = this.trajectoryStrength * delta;
+          vx += Math.cos(phase) * spin;
+          vz += Math.sin(phase) * spin;
+        } else if (this.trajectoryMode === "flutter" && this.trajectoryVectors) {
+          const tIdx = i * 3;
+          const flutter = Math.sin(phase * 1.6) * this.trajectoryStrength;
+          vx += this.trajectoryVectors[tIdx] * flutter * 0.6 * delta;
+          vz += this.trajectoryVectors[tIdx + 2] * flutter * 0.6 * delta;
+          vy += flutter * 0.35 * delta;
+        }
+      }
+
       vx *= this.drag;
       vy *= this.drag;
       vz *= this.drag;
@@ -1694,11 +1882,15 @@ function buildExplosionOptions(profile, hueBase) {
   const trajectoryTrail = bendTrails;
   const dotTrailChance = profile.dotTrailChance ?? DOT_TRAIL_CHANCE;
   const dotTrail = trajectoryTrail || Math.random() < dotTrailChance;
-  const dotTrailSamples = profile.dotTrailSamples ?? DOT_TRAIL_SAMPLES;
+  const dotTrailSamples = scaleTrailSamples(
+    profile.dotTrailSamples ?? DOT_TRAIL_SAMPLES
+  );
+  const extremeTrailSamples = scaleTrailSamples(EXTREME_TRAIL_SAMPLES);
+  const trajectoryTrailSamples = scaleTrailSamples(TRAJECTORY_TRAIL_SAMPLES);
   const trailSamples = extremeTrajectory
-    ? randInt(EXTREME_TRAIL_SAMPLES[0], EXTREME_TRAIL_SAMPLES[1])
+    ? randInt(extremeTrailSamples[0], extremeTrailSamples[1])
     : trajectoryTrail
-      ? randInt(TRAJECTORY_TRAIL_SAMPLES[0], TRAJECTORY_TRAIL_SAMPLES[1])
+      ? randInt(trajectoryTrailSamples[0], trajectoryTrailSamples[1])
       : dotTrail
         ? randInt(dotTrailSamples[0], dotTrailSamples[1])
         : 2;
@@ -1710,6 +1902,8 @@ function buildExplosionOptions(profile, hueBase) {
     (dotTrail ? DOT_PARTICLE_SCALE : 1) * bigParticleBoost * PARTICLE_SCALE;
   const dotTrailBoost = dotTrail ? DOT_TRAIL_MULTIPLIER : 1;
   const longTrail = Math.random() < LONG_TRAIL_CHANCE;
+  const extraLongTrail =
+    Math.random() < EXTRA_LONG_TRAIL_CHANCE ? EXTRA_LONG_TRAIL_MULTIPLIER : 1;
   const lengthBoost = Math.random() < LENGTH_BOOST_CHANCE;
   const lengthMultiplier = lengthBoost ? LENGTH_BOOST_MULTIPLIER : 1;
   const swirlTrails = Math.random() < SWIRL_TRAIL_CHANCE;
@@ -1745,12 +1939,23 @@ function buildExplosionOptions(profile, hueBase) {
   const spiralSpeed = sphericalCurly ? range(SPHERICAL_SPIRAL_SPEED) : 0;
   const swirlStrength = swirlTrails ? range(SWIRL_STRENGTH) : 0;
   const swirlSpeed = swirlTrails ? range(SWIRL_SPEED) : 0;
+  const trajectoryVariant =
+    Math.random() < TRAJECTORY_VARIANT_CHANCE ? pick(TRAJECTORY_VARIANTS) : null;
+  const trajectoryMode = trajectoryVariant ? trajectoryVariant.name : null;
+  const trajectoryStrength = trajectoryVariant ? range(trajectoryVariant.strength) : 0;
+  const trajectorySpeed = trajectoryVariant ? range(trajectoryVariant.speed) : 0;
 
   const countBoost = profile.spherical ? SPHERE_DENSITY_BOOST : 1;
   const radiusBoost = profile.spherical ? SPHERE_RADIUS_BOOST : 1;
   const sphereTrailBoost = profile.spherical ? SPHERE_TRAIL_MULTIPLIER : 1;
   const sphereSpeedBoost = profile.spherical ? SPHERE_SPEED_MULTIPLIER : 1;
   const sphereLifeBoost = profile.spherical ? SPHERE_LIFE_MULTIPLIER : 1;
+  const sphericalExtraTrail =
+    profile.spherical && Math.random() < SPHERICAL_EXTRA_LONG_TRAIL_CHANCE
+      ? SPHERICAL_EXTRA_LONG_TRAIL_MULTIPLIER
+      : 1;
+  const directionRotation = randomRotationQuaternion();
+  const directionMirror = randomMirrorVector();
 
   return {
     pattern: profile.pattern,
@@ -1775,7 +1980,9 @@ function buildExplosionOptions(profile, hueBase) {
       lifeTrailMultiplier *
       bigTrailBoost *
       trajectoryTrailBoost *
-      extremeTrailBoost,
+      extremeTrailBoost *
+      extraLongTrail *
+      sphericalExtraTrail,
     drag: range(profile.drag),
     drift: randomVec3(profile.drift),
     pointSize: range(profile.pointSize) * particleScale,
@@ -1792,10 +1999,15 @@ function buildExplosionOptions(profile, hueBase) {
     trailSamples,
     trailPointScale,
     trailWidthScale,
+    directionRotation,
+    directionMirror,
     spiralStrength,
     spiralSpeed,
     swirlStrength,
     swirlSpeed,
+    trajectoryMode,
+    trajectoryStrength,
+    trajectorySpeed,
   };
 }
 
@@ -1912,7 +2124,7 @@ function scheduleSingleDetonation(origin, baseHue) {
 }
 
 function scheduleDetonation(origin) {
-  const baseHue = Math.random();
+  const baseHue = pick(PURE_HUES);
   scheduleSingleDetonation(origin, baseHue);
 }
 
