@@ -104,6 +104,18 @@ const CURLY_TRAIL_CHANCE = 0.3;
 const SWIRL_TRAIL_CHANCE = 0.35;
 const SWIRL_STRENGTH = [8, 18];
 const SWIRL_SPEED = [5, 12];
+const CASCADE_TRAIL_CHANCE = 0.45;
+const CASCADE_TRAIL_SAMPLES = [48, 72];
+const CASCADE_TRAIL_LIFE_MULTIPLIER = 1.35;
+const CASCADE_TRAIL_POINT_SCALE = 0.85;
+const CASCADE_GRAVITY_SCALE_MULTIPLIER = 1.1;
+const CASCADE_GRAVITY_RAMP_BOOST = 0.6;
+const CASCADE_DRAG_BOOST = 0.015;
+const DROOP_TRAIL_CHANCE = 0.35;
+const DROOP_GRAVITY_SCALE_MULTIPLIER = 1.35;
+const DROOP_GRAVITY_RAMP_BOOST = 0.9;
+const DROOP_DRAG_BOOST = 0.02;
+const DROOP_LIFE_MULTIPLIER = 1.2;
 const TRAJECTORY_VARIANT_CHANCE = 0.3;
 const TRAJECTORY_VARIANTS = [
   { name: "zigzag", strength: [8, 16], speed: [6, 12] },
@@ -126,8 +138,8 @@ const CURLY_GRAVITY_RAMP_BOOST = 0.8;
 const CURLY_TRAIL_GROWTH_BOOST = 1.2;
 const TRAIL_WIDTH_RANGE = [0.35, 4.2];
 const PARTICLE_SCALE = 0.6;
-const EXTRA_LONG_TRAIL_CHANCE = 0.45;
-const EXTRA_LONG_TRAIL_MULTIPLIER = 75;
+const EXTRA_LONG_TRAIL_CHANCE = 0.25;
+const EXTRA_LONG_TRAIL_MULTIPLIER = 600;
 const AXIS_FLIP_CHANCE = 0.5;
 const SPHERICAL_BIAS = 0.82;
 const SPHERICAL_EXTRA_LONG_TRAIL_CHANCE = 0.25;
@@ -1862,6 +1874,8 @@ function buildExplosionOptions(profile, hueBase) {
     Math.random() < EXTRA_SCALE_CHANCE ? EXTRA_SCALE : 1;
   const extremeTrajectory = Math.random() < EXTREME_TRAIL_CHANCE;
   const bendTrails = extremeTrajectory || Math.random() < BEND_TRAIL_CHANCE;
+  const cascadeTrail = Math.random() < CASCADE_TRAIL_CHANCE;
+  const droopTrail = Math.random() < DROOP_TRAIL_CHANCE;
   const extraCurl = Math.random() < CURLY_TRAIL_CHANCE;
   const sphericalCurly =
     profile.spherical && Math.random() < SPHERICAL_CURLY_CHANCE;
@@ -1879,7 +1893,7 @@ function buildExplosionOptions(profile, hueBase) {
   const bigRadiusBoost = bigVariant ? BIG_RADIUS_MULTIPLIER : 1;
   const bigTrailBoost = bigVariant ? BIG_TRAIL_MULTIPLIER : 1;
   const bigParticleBoost = bigVariant ? BIG_PARTICLE_MULTIPLIER : 1;
-  const trajectoryTrail = bendTrails;
+  const trajectoryTrail = bendTrails || cascadeTrail;
   const dotTrailChance = profile.dotTrailChance ?? DOT_TRAIL_CHANCE;
   const dotTrail = trajectoryTrail || Math.random() < dotTrailChance;
   const dotTrailSamples = scaleTrailSamples(
@@ -1887,15 +1901,21 @@ function buildExplosionOptions(profile, hueBase) {
   );
   const extremeTrailSamples = scaleTrailSamples(EXTREME_TRAIL_SAMPLES);
   const trajectoryTrailSamples = scaleTrailSamples(TRAJECTORY_TRAIL_SAMPLES);
-  const trailSamples = extremeTrajectory
+  const cascadeTrailSamples = scaleTrailSamples(CASCADE_TRAIL_SAMPLES);
+  let trailSamples = extremeTrajectory
     ? randInt(extremeTrailSamples[0], extremeTrailSamples[1])
     : trajectoryTrail
       ? randInt(trajectoryTrailSamples[0], trajectoryTrailSamples[1])
       : dotTrail
         ? randInt(dotTrailSamples[0], dotTrailSamples[1])
         : 2;
+  if (cascadeTrail) {
+    trailSamples = randInt(cascadeTrailSamples[0], cascadeTrailSamples[1]);
+  }
   const trailPointScale = dotTrail
-    ? DOT_TRAIL_DOT_SCALE * (extremeTrajectory ? EXTREME_TRAIL_POINT_SCALE : 1)
+    ? DOT_TRAIL_DOT_SCALE *
+      (extremeTrajectory ? EXTREME_TRAIL_POINT_SCALE : 1) *
+      (cascadeTrail ? CASCADE_TRAIL_POINT_SCALE : 1)
     : 1;
   const trailWidthScale = range(TRAIL_WIDTH_RANGE);
   const particleScale =
@@ -1909,16 +1929,24 @@ function buildExplosionOptions(profile, hueBase) {
   const swirlTrails = Math.random() < SWIRL_TRAIL_CHANCE;
   const lifeBoost = Math.random() < LIFE_BOOST_CHANCE;
   const lifeTrailMultiplier = lifeBoost ? LIFE_BOOST_TRAIL_MULTIPLIER : 1;
-  const lifeScale =
+  let lifeScale =
     (longTrail ? LONG_LIFE_MULTIPLIER : 1) *
     (lifeBoost ? LIFE_BOOST_MULTIPLIER : 1) *
     (trajectoryTrail ? TRAJECTORY_LIFE_MULTIPLIER : 1) *
     (extremeTrajectory ? EXTREME_LIFE_MULTIPLIER : 1);
+  if (cascadeTrail) {
+    lifeScale *= CASCADE_TRAIL_LIFE_MULTIPLIER;
+  }
+  if (droopTrail) {
+    lifeScale *= DROOP_LIFE_MULTIPLIER;
+  }
   const trailGrowth = Math.max(
     longTrail ? LONG_TRAIL_GROWTH : 0,
     trajectoryTrail ? TRAJECTORY_TRAIL_GROWTH : 0
   ) + trailGrowthExtra;
   const gravityRampBoost = longTrail ? LONG_GRAVITY_RAMP_BOOST : 0;
+  const cascadeGravityRampBoost = cascadeTrail ? CASCADE_GRAVITY_RAMP_BOOST : 0;
+  const droopGravityRampBoost = droopTrail ? DROOP_GRAVITY_RAMP_BOOST : 0;
   const longTrailBoost = longTrail ? LONG_TRAIL_MULTIPLIER : 1;
   const trajectoryTrailBoost = trajectoryTrail ? TRAJECTORY_TRAIL_MULTIPLIER : 1;
   const extremeTrailBoost = extremeTrajectory ? EXTREME_TRAIL_MULTIPLIER : 1;
@@ -1956,6 +1984,11 @@ function buildExplosionOptions(profile, hueBase) {
       : 1;
   const directionRotation = randomRotationQuaternion();
   const directionMirror = randomMirrorVector();
+  const baseDrag = range(profile.drag);
+  const dragBoost =
+    (cascadeTrail ? CASCADE_DRAG_BOOST : 0) +
+    (droopTrail ? DROOP_DRAG_BOOST : 0);
+  const drag = dragBoost > 0 ? Math.min(baseDrag + dragBoost, 0.995) : baseDrag;
 
   return {
     pattern: profile.pattern,
@@ -1983,14 +2016,23 @@ function buildExplosionOptions(profile, hueBase) {
       extremeTrailBoost *
       extraLongTrail *
       sphericalExtraTrail,
-    drag: range(profile.drag),
+    drag,
     drift: randomVec3(profile.drift),
     pointSize: range(profile.pointSize) * particleScale,
     hue: baseHue,
     hues,
     hueVariance,
-    gravityScale: range(profile.gravityScale) * sphereSpeedBoost,
-    gravityRamp: gravityRamp + gravityRampBoost + gravityRampExtra,
+    gravityScale:
+      range(profile.gravityScale) *
+      sphereSpeedBoost *
+      (cascadeTrail ? CASCADE_GRAVITY_SCALE_MULTIPLIER : 1) *
+      (droopTrail ? DROOP_GRAVITY_SCALE_MULTIPLIER : 1),
+    gravityRamp:
+      gravityRamp +
+      gravityRampBoost +
+      gravityRampExtra +
+      cascadeGravityRampBoost +
+      droopGravityRampBoost,
     curveStrength: curveStrength * curveBoost,
     curveDecay,
     trailGrowth,
