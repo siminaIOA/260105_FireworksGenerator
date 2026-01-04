@@ -60,7 +60,8 @@ const fireworks = [];
 const flashes = [];
 const detonationQueue = [];
 const BLAST_SCALE = 8.775;
-const TRAIL_SCALE = 1.5;
+const TRAIL_SCALE = 2.835;
+const GLOBAL_LIFE_SCALE = 1.35;
 const EXTRA_SCALE = 1.75;
 const EXTRA_SCALE_CHANCE = 0.3;
 const SPHERICAL_TRAIL_CHANCE = 0.7;
@@ -80,15 +81,15 @@ const MULTI_BLAST_DELAY = [0.05, 0.18];
 const MULTI_BLAST_SPREAD = [30, 120];
 const MULTI_BLAST_RADIUS_SCALE = 0.65;
 const MULTI_BLAST_COUNT_SCALE = 0.7;
-const BIG_VARIANT_CHANCE = 0.3;
-const BIG_RADIUS_MULTIPLIER = 2.5;
+const BIG_VARIANT_CHANCE = 0.45;
+const BIG_RADIUS_MULTIPLIER = 1.45;
 const BIG_TRAIL_MULTIPLIER = 1;
 const BIG_PARTICLE_MULTIPLIER = 1;
 const MULTI_HUE_CHANCE = 0.25;
 const HUE_VARIANCE_BOOST = [0.06, 0.22];
 const MAX_HUE_VARIANCE = 0.35;
-const LONG_TRAIL_CHANCE = 0.5;
-const LONG_TRAIL_MULTIPLIER = 2.75;
+const LONG_TRAIL_CHANCE = 0.4;
+const LONG_TRAIL_MULTIPLIER = 2.8;
 const LONG_LIFE_MULTIPLIER = 1.35;
 const LONG_TRAIL_GROWTH = 2.6;
 const LONG_GRAVITY_RAMP_BOOST = 0.8;
@@ -99,9 +100,9 @@ const LENGTH_BOOST_CHANCE = 0.55;
 const LENGTH_BOOST_MULTIPLIER = 2.5;
 const BEND_TRAIL_CHANCE = 1;
 const CURLY_TRAIL_CHANCE = 0.3;
-const SWIRL_TRAIL_CHANCE = 0.25;
-const SWIRL_STRENGTH = [6, 14];
-const SWIRL_SPEED = [4, 9];
+const SWIRL_TRAIL_CHANCE = 0.35;
+const SWIRL_STRENGTH = [8, 18];
+const SWIRL_SPEED = [5, 12];
 const EXTREME_TRAIL_CHANCE = 0.35;
 const EXTREME_TRAIL_MULTIPLIER = 12;
 const EXTREME_LIFE_MULTIPLIER = 1.6;
@@ -118,9 +119,12 @@ const CURLY_GRAVITY_RAMP_BOOST = 0.8;
 const CURLY_TRAIL_GROWTH_BOOST = 1.2;
 const TRAIL_WIDTH_RANGE = [0.35, 4.2];
 const PARTICLE_SCALE = 0.6;
-const SPHERICAL_BIAS = 0.45;
+const SPHERICAL_BIAS = 0.61;
 const SPHERE_DENSITY_BOOST = 1.45;
-const SPHERE_RADIUS_BOOST = 0.9;
+const SPHERE_RADIUS_BOOST = 2.75;
+const SPHERE_TRAIL_MULTIPLIER = 15;
+const SPHERE_SPEED_MULTIPLIER = 1.35;
+const SPHERE_LIFE_MULTIPLIER = 1.35;
 const SPHERICAL_CURLY_CHANCE = 0.35;
 const SPHERICAL_CURLY_BOOST = 1.7;
 const SPHERICAL_SPIRAL_STRENGTH = [12, 22];
@@ -718,6 +722,71 @@ const explosionProfiles = [
     curveDecay: [0.6, 1.0],
     gravityRamp: [0.8, 1.2],
   },
+  {
+    pattern: "saturn",
+    count: [220, 420],
+    radius: [120, 280],
+    life: [1.6, 2.8],
+    trailStretch: [2.4, 5.4],
+    drag: [0.95, 0.985],
+    drift: { x: [-2.0, 2.0], y: [-1.4, 1.4], z: [-2.0, 2.0] },
+    pointSize: [1.3, 2.6],
+    gravityScale: [0.9, 1.2],
+    hueVariance: 0.1,
+    trailBoost: 2.2,
+    curveStrength: [12, 24],
+    curveDecay: [0.6, 1.1],
+    gravityRamp: [0.9, 1.3],
+    spherical: true,
+  },
+  {
+    pattern: "crossette",
+    count: [180, 360],
+    radius: [110, 250],
+    life: [1.5, 2.6],
+    trailStretch: [2.2, 5.0],
+    drag: [0.95, 0.985],
+    drift: { x: [-1.8, 1.8], y: [-1.2, 1.2], z: [-1.8, 1.8] },
+    pointSize: [1.3, 2.6],
+    gravityScale: [0.9, 1.2],
+    hueVariance: 0.12,
+    trailBoost: 2.0,
+    curveStrength: [10, 22],
+    curveDecay: [0.6, 1.1],
+    gravityRamp: [0.8, 1.2],
+  },
+  {
+    pattern: "spokes",
+    count: [200, 380],
+    radius: [120, 270],
+    life: [1.5, 2.6],
+    trailStretch: [2.4, 5.2],
+    drag: [0.95, 0.985],
+    drift: { x: [-1.8, 1.8], y: [-1.2, 1.2], z: [-1.8, 1.8] },
+    pointSize: [1.3, 2.6],
+    gravityScale: [0.9, 1.2],
+    hueVariance: 0.1,
+    trailBoost: 2.1,
+    curveStrength: [10, 22],
+    curveDecay: [0.6, 1.1],
+    gravityRamp: [0.9, 1.3],
+  },
+  {
+    pattern: "helix",
+    count: [180, 360],
+    radius: [120, 260],
+    life: [1.6, 2.8],
+    trailStretch: [2.6, 5.6],
+    drag: [0.95, 0.985],
+    drift: { x: [-2.0, 2.0], y: [-1.2, 1.2], z: [-2.0, 2.0] },
+    pointSize: [1.3, 2.6],
+    gravityScale: [0.9, 1.2],
+    hueVariance: 0.1,
+    trailBoost: 2.2,
+    curveStrength: [12, 24],
+    curveDecay: [0.6, 1.1],
+    gravityRamp: [0.9, 1.3],
+  },
 ];
 
 function rand(min, max) {
@@ -795,7 +864,9 @@ function buildPatternData(pattern) {
     pattern === "cross" ||
     pattern === "comet" ||
     pattern === "double" ||
-    pattern === "nova"
+    pattern === "nova" ||
+    pattern === "saturn" ||
+    pattern === "crossette"
   ) {
     return buildBasis(randomDirection());
   }
@@ -1152,6 +1223,64 @@ function directionFor(pattern, i, count, data) {
     const dir = randomDirection();
     dir.y = Math.abs(dir.y) * 0.55 + 0.25;
     return dir.normalize();
+  }
+
+  if (pattern === "saturn") {
+    const ringCount = Math.floor(count * 0.7);
+    if (i < ringCount) {
+      const angle = (i / ringCount) * Math.PI * 2;
+      if (data) {
+        const dir = data.tangent
+          .clone()
+          .multiplyScalar(Math.cos(angle))
+          .add(data.bitangent.clone().multiplyScalar(Math.sin(angle)));
+        dir.addScaledVector(data.axis, rand(-0.08, 0.08));
+        return dir.normalize();
+      }
+      return new THREE.Vector3(
+        Math.cos(angle),
+        Math.sin(angle),
+        rand(-0.12, 0.12)
+      ).normalize();
+    }
+
+    return randomDirection().normalize();
+  }
+
+  if (pattern === "crossette") {
+    if (data) {
+      const axis = Math.random() < 0.5 ? data.tangent : data.bitangent;
+      const dir = axis.clone().multiplyScalar(Math.random() < 0.5 ? -1 : 1);
+      dir.addScaledVector(data.axis, rand(-0.15, 0.15));
+      return dir.normalize();
+    }
+  }
+
+  if (pattern === "spokes") {
+    const spikes = randInt(8, 14);
+    const step = (Math.PI * 2) / spikes;
+    const index = Math.round((i / count) * spikes);
+    const angle = index * step + rand(-0.18, 0.18);
+    const up = rand(0.2, 0.6);
+    const out = Math.sqrt(1 - up * up);
+    return new THREE.Vector3(
+      Math.cos(angle) * out,
+      up,
+      Math.sin(angle) * out
+    ).normalize();
+  }
+
+  if (pattern === "helix") {
+    const turns = rand(4, 7);
+    const t = i / count;
+    const angle = t * Math.PI * 2 * turns;
+    const radius = 0.45 + 0.25 * Math.sin(t * Math.PI * 2);
+    const lift = 0.2 + 0.8 * t;
+    return new THREE.Vector3(
+      Math.cos(angle) * radius,
+      lift,
+      Math.sin(angle) * radius
+    ).normalize();
   }
 
   const angle = rand(0, Math.PI * 2);
@@ -1619,6 +1748,9 @@ function buildExplosionOptions(profile, hueBase) {
 
   const countBoost = profile.spherical ? SPHERE_DENSITY_BOOST : 1;
   const radiusBoost = profile.spherical ? SPHERE_RADIUS_BOOST : 1;
+  const sphereTrailBoost = profile.spherical ? SPHERE_TRAIL_MULTIPLIER : 1;
+  const sphereSpeedBoost = profile.spherical ? SPHERE_SPEED_MULTIPLIER : 1;
+  const sphereLifeBoost = profile.spherical ? SPHERE_LIFE_MULTIPLIER : 1;
 
   return {
     pattern: profile.pattern,
@@ -1630,12 +1762,13 @@ function buildExplosionOptions(profile, hueBase) {
       extraScale *
       bigRadiusBoost *
       radiusBoost,
-    life: range(profile.life) * lifeScale,
+    life: range(profile.life) * lifeScale * GLOBAL_LIFE_SCALE * sphereLifeBoost,
     trailStretch:
       range(profile.trailStretch) *
       TRAIL_SCALE *
       trailBoost *
       sphericalTrailBoost *
+      sphereTrailBoost *
       dotTrailBoost *
       longTrailBoost *
       lengthMultiplier *
@@ -1649,7 +1782,7 @@ function buildExplosionOptions(profile, hueBase) {
     hue: baseHue,
     hues,
     hueVariance,
-    gravityScale: range(profile.gravityScale),
+    gravityScale: range(profile.gravityScale) * sphereSpeedBoost,
     gravityRamp: gravityRamp + gravityRampBoost + gravityRampExtra,
     curveStrength: curveStrength * curveBoost,
     curveDecay,
