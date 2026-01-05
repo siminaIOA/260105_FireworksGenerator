@@ -62,6 +62,8 @@ const detonationQueue = [];
 const BLAST_SCALE = 8.775;
 const TRAIL_SCALE = 5.5;
 const GLOBAL_LIFE_SCALE = 1.35;
+const SMALL_BLAST_CHANCE = 0.8;
+const SMALL_BLAST_SCALE = 0.85;
 const EXTRA_SCALE = 1.75;
 const EXTRA_SCALE_CHANCE = 0.3;
 const SPHERICAL_TRAIL_CHANCE = 0.7;
@@ -89,6 +91,7 @@ const BIG_PARTICLE_MULTIPLIER = 1;
 const MULTI_HUE_CHANCE = 0.4;
 const HUE_VARIANCE_BOOST = [0.06, 0.22];
 const MAX_HUE_VARIANCE = 0.35;
+const HEAD_POINT_RELATIVE_SCALE = 1.1;
 const LONG_TRAIL_CHANCE = 0.4;
 const LONG_TRAIL_MULTIPLIER = 2.8;
 const LONG_LIFE_MULTIPLIER = 1.35;
@@ -110,14 +113,14 @@ const CASCADE_TRAIL_LIFE_MULTIPLIER = 1.35;
 const CASCADE_TRAIL_POINT_SCALE = 0.85;
 const CASCADE_GRAVITY_SCALE_MULTIPLIER = 1.1;
 const CASCADE_GRAVITY_RAMP_BOOST = 0.6;
-const CASCADE_DRAG_BOOST = 0.015;
+const CASCADE_DRAG_BOOST = 0.01;
 const DROOP_TRAIL_CHANCE = 0.35;
 const DROOP_TRAIL_SAMPLES = [40, 64];
 const DROOP_TRAIL_POINT_SCALE = 1.1;
 const DROOP_TRAIL_BRIGHTNESS = 1.4;
 const DROOP_GRAVITY_SCALE_MULTIPLIER = 1.6;
 const DROOP_GRAVITY_RAMP_BOOST = 1.3;
-const DROOP_DRAG_BOOST = 0.03;
+const DROOP_DRAG_BOOST = 0.02;
 const DROOP_LIFE_MULTIPLIER = 1.4;
 const TRAJECTORY_VARIANT_CHANCE = 0.3;
 const TRAJECTORY_VARIANTS = [
@@ -136,6 +139,8 @@ const TRAJECTORY_TRAIL_GROWTH = 1.2;
 const TRAJECTORY_TRAIL_SAMPLES = [14, 22];
 const TRAIL_FADE_CUTOFF = 0.18;
 const TRAIL_FADE_POWER = 1.9;
+const SOFT_FADE_CHANCE = 0.35;
+const SOFT_FADE_POWER = 1.2;
 const CURLY_CURVE_BOOST = 5.8;
 const CURLY_GRAVITY_RAMP_BOOST = 0.8;
 const CURLY_TRAIL_GROWTH_BOOST = 1.2;
@@ -1502,6 +1507,7 @@ class Firework {
     this.trailPointScale = options.trailPointScale ?? 1;
     this.trailWidthScale = options.trailWidthScale ?? 1;
     this.trailBrightness = options.trailBrightness ?? 1;
+    this.trailFadePower = options.trailFadePower ?? TRAIL_FADE_POWER;
     this.trailHistory = options.trailHistory ?? false;
     this.spiralStrength = options.spiralStrength ?? 0;
     this.spiralSpeed = options.spiralSpeed ?? 0;
@@ -1646,8 +1652,15 @@ class Firework {
       new THREE.BufferAttribute(this.colors, 3)
     );
 
+    const trailPointSize =
+      this.pointSize * this.trailPointScale * this.trailWidthScale;
+    const headPointSize = Math.max(
+      this.pointSize,
+      trailPointSize * HEAD_POINT_RELATIVE_SCALE
+    );
+
     this.pointsMaterial = new THREE.PointsMaterial({
-      size: this.pointSize,
+      size: headPointSize,
       vertexColors: true,
       map: circleTexture,
       alphaTest: 0.35,
@@ -1806,7 +1819,7 @@ class Firework {
         (lifeRatio - TRAIL_FADE_CUTOFF) / (1 - TRAIL_FADE_CUTOFF),
         0
       );
-      const trailFade = Math.pow(trailBase, TRAIL_FADE_POWER);
+      const trailFade = Math.pow(trailBase, this.trailFadePower);
       const trailIntensity = trailFade * this.trailBrightness;
 
       if (this.trailHistory) {
@@ -1877,6 +1890,7 @@ function buildExplosionOptions(profile, hueBase) {
   const gravityRamp = profile.gravityRamp ? range(profile.gravityRamp) : 0;
   const extraScale =
     Math.random() < EXTRA_SCALE_CHANCE ? EXTRA_SCALE : 1;
+  const smallBlast = Math.random() < SMALL_BLAST_CHANCE;
   const extremeTrajectory = Math.random() < EXTREME_TRAIL_CHANCE;
   const bendTrails = extremeTrajectory || Math.random() < BEND_TRAIL_CHANCE;
   const cascadeTrail = Math.random() < CASCADE_TRAIL_CHANCE;
@@ -1938,6 +1952,7 @@ function buildExplosionOptions(profile, hueBase) {
   const lengthBoost = Math.random() < LENGTH_BOOST_CHANCE;
   const lengthMultiplier = lengthBoost ? LENGTH_BOOST_MULTIPLIER : 1;
   const swirlTrails = Math.random() < SWIRL_TRAIL_CHANCE;
+  const softFade = Math.random() < SOFT_FADE_CHANCE;
   const lifeBoost = Math.random() < LIFE_BOOST_CHANCE;
   const lifeTrailMultiplier = lifeBoost ? LIFE_BOOST_TRAIL_MULTIPLIER : 1;
   let lifeScale =
@@ -2010,6 +2025,7 @@ function buildExplosionOptions(profile, hueBase) {
       BLAST_SCALE *
       scale *
       extraScale *
+      (smallBlast ? SMALL_BLAST_SCALE : 1) *
       bigRadiusBoost *
       radiusBoost,
     life: range(profile.life) * lifeScale * GLOBAL_LIFE_SCALE * sphereLifeBoost,
@@ -2054,6 +2070,7 @@ function buildExplosionOptions(profile, hueBase) {
     trailPointScale,
     trailWidthScale,
     trailBrightness,
+    trailFadePower: softFade ? SOFT_FADE_POWER : TRAIL_FADE_POWER,
     directionRotation,
     directionMirror,
     spiralStrength,
