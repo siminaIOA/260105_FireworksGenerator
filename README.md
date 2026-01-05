@@ -3,11 +3,13 @@
 260105_FireworksGenerator is a local Three.js fireworks sandbox that spawns dense, stylized detonations on a black sky with flashlight pops, curved trajectories, and a heavy bias toward perfectly rounded spherical bursts.
 
 ## Features
-- Many blast patterns with strong spherical bias and distinct shapes
-- Curved, swirled, and spiral trajectories with long-trail variants
-- Bright flash pop on most detonations matching the firework hue
-- Occasional multi-blast bursts for secondary particle detonations
-- Crisp circular particles with dotted or line-based trails
+- Expanded blast catalog with new shapes and motion styles
+- Strong spherical bias with boosted droops, long trails, and mega droop variants
+- Spaghetti curl trails with curl-noise motion, extra droop, and denser trail sampling
+- Snowflake-style drifting trajectories on a subset of blasts
+- Solid, intense color palette with Ferrari red spherical bursts and limited rainbow use
+- Lightning-style center flashes with colored cores and secondary flash bursts
+- Non-spherical chaos: flips, rotations, mirroring, and cross emphasis
 
 ## Getting Started
 1. `npm install`
@@ -16,3 +18,21 @@
 
 ## Controls
 - Click on the canvas to detonate a firework at the cursor position
+
+## Deployment
+Live demo: https://siminaIOA.github.io/260105_FireworksGenerator/
+
+Build locally with relative asset paths:
+1. `npm install`
+2. `npm run build -- --base=./`
+
+Deploy to GitHub Pages (keeps `main` clean by using a worktree):
+1. `git worktree add ../260101_FireworksGenerator_gh-pages gh-pages`
+2. Copy the build output into the worktree root:
+   - Remove old `assets/` + `index.html`
+   - Copy `dist/*` from the main repo into the worktree root
+   - Add `.nojekyll`
+3. Commit and push from the `gh-pages` worktree:
+   - `git add -A`
+   - `git commit -m "Deploy build"`
+   - `git push`
