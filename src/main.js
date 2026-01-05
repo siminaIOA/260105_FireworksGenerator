@@ -38,6 +38,35 @@ const circleTexture = (() => {
   return texture;
 })();
 
+const flashTexture = (() => {
+  const size = 64;
+  const offscreen = document.createElement("canvas");
+  offscreen.width = size;
+  offscreen.height = size;
+  const ctx = offscreen.getContext("2d");
+  const center = size / 2;
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.strokeStyle = "rgba(255, 255, 255, 1)";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
+  ctx.shadowBlur = 10;
+
+  ctx.beginPath();
+  ctx.moveTo(center, center - 10);
+  ctx.lineTo(center - 3, center - 2);
+  ctx.lineTo(center + 2, center + 5);
+  ctx.lineTo(center - 1, center + 12);
+  ctx.stroke();
+
+  const texture = new THREE.CanvasTexture(offscreen);
+  texture.minFilter = THREE.NearestFilter;
+  texture.magFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  return texture;
+})();
+
 let width = window.innerWidth;
 let height = window.innerHeight;
 
@@ -137,12 +166,21 @@ const MEGA_DROOP_LIFE_MULTIPLIER = 1.6;
 const MEGA_DROOP_GRAVITY_SCALE_MULTIPLIER = 2.0;
 const MEGA_DROOP_GRAVITY_RAMP_BOOST = 1.8;
 const MEGA_DROOP_SPHERE_TRAIL_MULTIPLIER = 1.4;
+const SPHERICAL_DROOP_CHANCE = 0.25;
+const CLICK_DROOP_CHANCE = 0.15;
+const CLICK_DROOP_TRAIL_MULTIPLIER = 2.0;
+const CLICK_DROOP_LIFE_MULTIPLIER = 1.2;
 const TRAJECTORY_VARIANT_CHANCE = 0.3;
 const TRAJECTORY_VARIANTS = [
   { name: "zigzag", strength: [8, 16], speed: [6, 12] },
   { name: "corkscrew", strength: [6, 12], speed: [6, 10] },
   { name: "flutter", strength: [4, 10], speed: [8, 14] },
 ];
+const CURL_NOISE_CHANCE = 0.15;
+const CURL_NOISE_STRENGTH = [20, 36];
+const CURL_NOISE_SCALE = [0.006, 0.012];
+const CURL_NOISE_SPEED = [0.8, 1.6];
+const CURL_NOISE_EPSILON = 0.02;
 const EXTREME_TRAIL_CHANCE = 0.35;
 const EXTREME_TRAIL_MULTIPLIER = 12;
 const EXTREME_LIFE_MULTIPLIER = 1.6;
@@ -166,7 +204,7 @@ const EXTRA_LONG_TRAIL_MULTIPLIER = 600;
 const AXIS_FLIP_CHANCE = 0.5;
 const NON_SPHERICAL_FLIP_CHANCE = 0.75;
 const NON_SPHERICAL_SCALE_RANGE = [0.75, 1.35];
-const SPHERICAL_BIAS = 0.8;
+const SPHERICAL_BIAS = 0.96;
 const SPHERICAL_EXTRA_LONG_TRAIL_CHANCE = 0.25;
 const SPHERICAL_EXTRA_LONG_TRAIL_MULTIPLIER = 35;
 const PURE_HUES = [0, 1 / 12, 1 / 6, 1 / 3, 1 / 2, 2 / 3, 5 / 6, 11 / 12];
@@ -196,9 +234,9 @@ const SPHERICAL_CURLY_BOOST = 1.7;
 const SPHERICAL_SPIRAL_STRENGTH = [12, 22];
 const SPHERICAL_SPIRAL_SPEED = [4.5, 7.5];
 const FLASH_CHANCE = 0.65;
-const FLASH_LIFE = [0.05, 0.1];
-const FLASH_SIZE = [75, 140];
-const FLASH_OPACITY = [1, 1.1];
+const FLASH_LIFE = [0.06, 0.12];
+const FLASH_SIZE = [12, 22];
+const FLASH_OPACITY = [1, 3];
 const explosionProfiles = [
   {
     pattern: "burst",
@@ -954,6 +992,74 @@ function randomScaleVector(range) {
   );
 }
 
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function fade(t) {
+  return t * t * (3 - 2 * t);
+}
+
+function hash3(x, y, z) {
+  const h = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453;
+  return h - Math.floor(h);
+}
+
+function noise3(x, y, z) {
+  const xi = Math.floor(x);
+  const yi = Math.floor(y);
+  const zi = Math.floor(z);
+  const xf = x - xi;
+  const yf = y - yi;
+  const zf = z - zi;
+  const u = fade(xf);
+  const v = fade(yf);
+  const w = fade(zf);
+
+  const n000 = hash3(xi, yi, zi);
+  const n100 = hash3(xi + 1, yi, zi);
+  const n010 = hash3(xi, yi + 1, zi);
+  const n110 = hash3(xi + 1, yi + 1, zi);
+  const n001 = hash3(xi, yi, zi + 1);
+  const n101 = hash3(xi + 1, yi, zi + 1);
+  const n011 = hash3(xi, yi + 1, zi + 1);
+  const n111 = hash3(xi + 1, yi + 1, zi + 1);
+
+  const x00 = lerp(n000, n100, u);
+  const x10 = lerp(n010, n110, u);
+  const x01 = lerp(n001, n101, u);
+  const x11 = lerp(n011, n111, u);
+  const y0 = lerp(x00, x10, v);
+  const y1 = lerp(x01, x11, v);
+
+  return lerp(y0, y1, w);
+}
+
+function curlNoise(x, y, z, eps) {
+  const fx = x + 31.4;
+  const fy = y + 47.2;
+  const fz = z + 11.9;
+  const gx = x + 17.1;
+  const gy = y + 83.6;
+  const gz = z + 29.5;
+  const hx = x + 53.7;
+  const hy = y + 19.3;
+  const hz = z + 61.2;
+
+  const dFz_dy = (noise3(hx, hy + eps, hz) - noise3(hx, hy - eps, hz)) / (2 * eps);
+  const dFy_dz = (noise3(gx, gy, gz + eps) - noise3(gx, gy, gz - eps)) / (2 * eps);
+  const dFx_dz = (noise3(fx, fy, fz + eps) - noise3(fx, fy, fz - eps)) / (2 * eps);
+  const dFz_dx = (noise3(hx + eps, hy, hz) - noise3(hx - eps, hy, hz)) / (2 * eps);
+  const dFy_dx = (noise3(gx + eps, gy, gz) - noise3(gx - eps, gy, gz)) / (2 * eps);
+  const dFx_dy = (noise3(fx, fy + eps, fz) - noise3(fx, fy - eps, fz)) / (2 * eps);
+
+  return new THREE.Vector3(
+    dFz_dy - dFy_dz,
+    dFx_dz - dFz_dx,
+    dFy_dx - dFx_dy
+  );
+}
+
 function scaleTrailSamples(samples) {
   const scaledMin = Math.max(2, Math.round(samples[0] * TRAIL_SAMPLE_SCALE));
   const scaledMax = Math.max(scaledMin, Math.round(samples[1] * TRAIL_SAMPLE_SCALE));
@@ -1511,7 +1617,7 @@ class Flash {
     this.size = range(FLASH_SIZE);
 
     this.material = new THREE.SpriteMaterial({
-      map: circleTexture,
+      map: flashTexture,
       color,
       transparent: true,
       opacity: this.baseOpacity,
@@ -1519,6 +1625,7 @@ class Flash {
       blending: THREE.AdditiveBlending,
       alphaTest: 0.5,
     });
+    this.material.rotation = rand(0, Math.PI * 2);
 
     this.sprite = new THREE.Sprite(this.material);
     this.sprite.position.copy(position);
@@ -1573,6 +1680,11 @@ class Firework {
     this.trajectorySpeed = options.trajectorySpeed ?? 0;
     this.trajectoryPhase = null;
     this.trajectoryVectors = null;
+    this.curlNoise = options.curlNoise ?? false;
+    this.curlNoiseStrength = options.curlNoiseStrength ?? 0;
+    this.curlNoiseScale = options.curlNoiseScale ?? 1;
+    this.curlNoiseSpeed = options.curlNoiseSpeed ?? 0;
+    this.curlNoiseOffset = null;
     this.directionRotation = options.directionRotation ?? null;
     this.directionMirror = options.directionMirror ?? null;
     this.directionScale = options.directionScale ?? null;
@@ -1629,6 +1741,14 @@ class Firework {
       for (let i = 0; i < this.count; i += 1) {
         this.swirlPhase[i] = rand(0, Math.PI * 2);
       }
+    }
+
+    if (this.curlNoise) {
+      this.curlNoiseOffset = new THREE.Vector3(
+        rand(-100, 100),
+        rand(-100, 100),
+        rand(-100, 100)
+      );
     }
 
     if (this.trajectoryMode) {
@@ -1846,6 +1966,21 @@ class Firework {
         }
       }
 
+      const px = this.positions[idx];
+      const py = this.positions[idx + 1];
+      const pz = this.positions[idx + 2];
+
+      if (this.curlNoise && this.curlNoiseOffset) {
+        const t = elapsedTime * this.curlNoiseSpeed;
+        const nx = px * this.curlNoiseScale + this.curlNoiseOffset.x;
+        const ny = py * this.curlNoiseScale + this.curlNoiseOffset.y;
+        const nz = pz * this.curlNoiseScale + this.curlNoiseOffset.z + t;
+        const curl = curlNoise(nx, ny, nz, CURL_NOISE_EPSILON);
+        vx += curl.x * this.curlNoiseStrength * delta;
+        vy += curl.y * this.curlNoiseStrength * delta;
+        vz += curl.z * this.curlNoiseStrength * delta;
+      }
+
       vx *= this.drag;
       vy *= this.drag;
       vz *= this.drag;
@@ -1853,10 +1988,6 @@ class Firework {
       this.velocities[idx] = vx;
       this.velocities[idx + 1] = vy;
       this.velocities[idx + 2] = vz;
-
-      const px = this.positions[idx];
-      const py = this.positions[idx + 1];
-      const pz = this.positions[idx + 2];
 
       const nx = px + vx * delta;
       const ny = py + vy * delta;
@@ -1939,7 +2070,7 @@ class Firework {
   }
 }
 
-function buildExplosionOptions(profile, hueBase) {
+function buildExplosionOptions(profile, hueBase, clickDroop = false) {
   const scale = profile.scale ?? 1;
   const baseHue = hueBase ?? Math.random();
   const baseVariance = profile.hueVariance ?? 0.1;
@@ -1956,7 +2087,10 @@ function buildExplosionOptions(profile, hueBase) {
   const droopRoll = Math.random();
   const droopExtra = droopRoll < DROOP_EXTRA_CHANCE;
   const megaDroop = Math.random() < MEGA_DROOP_CHANCE;
-  const droopTrail = droopRoll < DROOP_TRAIL_CHANCE || megaDroop;
+  const sphericalDroop =
+    profile.spherical && Math.random() < SPHERICAL_DROOP_CHANCE;
+  const droopTrail =
+    droopRoll < DROOP_TRAIL_CHANCE || megaDroop || sphericalDroop || clickDroop;
   const extraCurl = Math.random() < CURLY_TRAIL_CHANCE;
   const sphericalCurly =
     profile.spherical && Math.random() < SPHERICAL_CURLY_CHANCE;
@@ -2018,6 +2152,7 @@ function buildExplosionOptions(profile, hueBase) {
       ? MEGA_DROOP_TRAIL_MULTIPLIER *
         (profile.spherical ? MEGA_DROOP_SPHERE_TRAIL_MULTIPLIER : 1)
       : 1;
+  const clickDroopTrail = clickDroop ? CLICK_DROOP_TRAIL_MULTIPLIER : 1;
   const lengthBoost = Math.random() < LENGTH_BOOST_CHANCE;
   const lengthMultiplier = lengthBoost ? LENGTH_BOOST_MULTIPLIER : 1;
   const swirlHeavy = Math.random() < SWIRL_HEAVY_CHANCE;
@@ -2041,6 +2176,9 @@ function buildExplosionOptions(profile, hueBase) {
   }
   if (megaDroop) {
     lifeScale *= MEGA_DROOP_LIFE_MULTIPLIER;
+  }
+  if (clickDroop) {
+    lifeScale *= CLICK_DROOP_LIFE_MULTIPLIER;
   }
   const trailGrowth = Math.max(
     longTrail ? LONG_TRAIL_GROWTH : 0,
@@ -2079,6 +2217,7 @@ function buildExplosionOptions(profile, hueBase) {
     : swirlTrails
       ? range(SWIRL_SPEED)
       : 0;
+  const curlNoise = !noTrail && Math.random() < CURL_NOISE_CHANCE;
   const trajectoryVariant =
     Math.random() < TRAJECTORY_VARIANT_CHANCE ? pick(TRAJECTORY_VARIANTS) : null;
   const trajectoryMode = trajectoryVariant ? trajectoryVariant.name : null;
@@ -2140,7 +2279,8 @@ function buildExplosionOptions(profile, hueBase) {
       extraLongTrail *
       sphericalExtraTrail *
       droopExtraTrail *
-      megaDroopTrail,
+      megaDroopTrail *
+      clickDroopTrail,
     drag,
     drift: randomVec3(profile.drift),
     pointSize: range(profile.pointSize) * particleScale,
@@ -2187,6 +2327,10 @@ function buildExplosionOptions(profile, hueBase) {
     trajectoryMode,
     trajectoryStrength,
     trajectorySpeed,
+    curlNoise,
+    curlNoiseStrength: curlNoise ? range(CURL_NOISE_STRENGTH) : 0,
+    curlNoiseScale: curlNoise ? range(CURL_NOISE_SCALE) : 0,
+    curlNoiseSpeed: curlNoise ? range(CURL_NOISE_SPEED) : 0,
   };
 }
 
@@ -2225,7 +2369,7 @@ function buildSecondaryProfile() {
   };
 }
 
-function scheduleSecondaryBlasts(origin, profile, hueBase) {
+function scheduleSecondaryBlasts(origin, profile, hueBase, clickDroop = false) {
   if (Math.random() >= MULTI_BLAST_CHANCE) {
     return;
   }
@@ -2250,15 +2394,22 @@ function scheduleSecondaryBlasts(origin, profile, hueBase) {
       profile: secondaryProfile,
       hue: hueBase,
       allowMultiBlast: false,
+      clickDroop,
     });
   }
 }
 
-function explodeAt(position, profile, hueBase, allowMultiBlast = true) {
+function explodeAt(
+  position,
+  profile,
+  hueBase,
+  allowMultiBlast = true,
+  clickDroop = false
+) {
   const chosen = profile ?? pick(explosionProfiles);
   const firework = new Firework(
     position,
-    buildExplosionOptions(chosen, hueBase)
+    buildExplosionOptions(chosen, hueBase, clickDroop)
   );
 
   fireworks.push(firework);
@@ -2268,7 +2419,7 @@ function explodeAt(position, profile, hueBase, allowMultiBlast = true) {
   }
 
   if (allowMultiBlast) {
-    scheduleSecondaryBlasts(position, chosen, hueBase);
+    scheduleSecondaryBlasts(position, chosen, hueBase, clickDroop);
   }
 }
 
@@ -2290,7 +2441,7 @@ function clampToView(position) {
   );
 }
 
-function scheduleSingleDetonation(origin, baseHue) {
+function scheduleSingleDetonation(origin, baseHue, clickDroop = false) {
   const excluded = new Set(lastClickSignature ? lastClickSignature.split("|") : []);
   const sphericalPool = explosionProfiles.filter(
     (profile) => profile.spherical && !excluded.has(profile.pattern)
@@ -2315,12 +2466,14 @@ function scheduleSingleDetonation(origin, baseHue) {
     position: origin,
     profile,
     hue: baseHue,
+    clickDroop,
   });
 }
 
 function scheduleDetonation(origin) {
   const baseHue = pick(PURE_HUES);
-  scheduleSingleDetonation(origin, baseHue);
+  const clickDroop = Math.random() < CLICK_DROOP_CHANCE;
+  scheduleSingleDetonation(origin, baseHue, clickDroop);
 }
 
 function onPointerDown(event) {
@@ -2363,7 +2516,8 @@ function animate() {
           item.position,
           item.profile,
           item.hue,
-          item.allowMultiBlast ?? true
+          item.allowMultiBlast ?? true,
+          item.clickDroop ?? false
         );
         detonationQueue.splice(i, 1);
       }
