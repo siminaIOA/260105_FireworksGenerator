@@ -73,7 +73,8 @@ const DOT_TRAIL_MULTIPLIER = 2.6;
 const DOT_TRAIL_DOT_SCALE = 1.2;
 const DOT_PARTICLE_SCALE = 1.1;
 const DOT_TRAIL_SAMPLES = [5, 9];
-const TRAIL_SAMPLE_SCALE = 0.5625;
+const NO_TRAIL_CHANCE = 0.25;
+const TRAIL_SAMPLE_SCALE = 0.478125;
 const MULTI_CLICK_CHANCE = 0;
 const MULTI_CLICK_COUNT = [2, 4];
 const MULTI_CLICK_DELAY = [0.05, 0.18];
@@ -88,7 +89,7 @@ const BIG_VARIANT_CHANCE = 0.45;
 const BIG_RADIUS_MULTIPLIER = 1.45;
 const BIG_TRAIL_MULTIPLIER = 3;
 const BIG_PARTICLE_MULTIPLIER = 1;
-const MULTI_HUE_CHANCE = 0.4;
+const MULTI_HUE_CHANCE = 0.3;
 const HUE_VARIANCE_BOOST = [0.06, 0.22];
 const MAX_HUE_VARIANCE = 0.35;
 const HEAD_POINT_RELATIVE_SCALE = 1.1;
@@ -107,6 +108,10 @@ const CURLY_TRAIL_CHANCE = 0.3;
 const SWIRL_TRAIL_CHANCE = 0.35;
 const SWIRL_STRENGTH = [8, 18];
 const SWIRL_SPEED = [5, 12];
+const SWIRL_HEAVY_CHANCE = 0.15;
+const SWIRL_HEAVY_STRENGTH = [18, 30];
+const SWIRL_HEAVY_SPEED = [10, 18];
+const SWIRL_DROOP_GRAVITY_BOOST = 0.5;
 const CASCADE_TRAIL_CHANCE = 0.45;
 const CASCADE_TRAIL_SAMPLES = [48, 72];
 const CASCADE_TRAIL_LIFE_MULTIPLIER = 1.35;
@@ -122,6 +127,16 @@ const DROOP_GRAVITY_SCALE_MULTIPLIER = 1.6;
 const DROOP_GRAVITY_RAMP_BOOST = 1.3;
 const DROOP_DRAG_BOOST = 0.02;
 const DROOP_LIFE_MULTIPLIER = 1.4;
+const DROOP_EXTRA_CHANCE = 0.15;
+const DROOP_EXTRA_TRAIL_MULTIPLIER = 1.5;
+const DROOP_EXTRA_LIFE_MULTIPLIER = 1.25;
+const DROOP_EXTRA_FADE_POWER = 0.85;
+const MEGA_DROOP_CHANCE = 0.1;
+const MEGA_DROOP_TRAIL_MULTIPLIER = 2;
+const MEGA_DROOP_LIFE_MULTIPLIER = 1.6;
+const MEGA_DROOP_GRAVITY_SCALE_MULTIPLIER = 2.0;
+const MEGA_DROOP_GRAVITY_RAMP_BOOST = 1.8;
+const MEGA_DROOP_SPHERE_TRAIL_MULTIPLIER = 1.4;
 const TRAJECTORY_VARIANT_CHANCE = 0.3;
 const TRAJECTORY_VARIANTS = [
   { name: "zigzag", strength: [8, 16], speed: [6, 12] },
@@ -149,10 +164,28 @@ const PARTICLE_SCALE = 0.6;
 const EXTRA_LONG_TRAIL_CHANCE = 0.25;
 const EXTRA_LONG_TRAIL_MULTIPLIER = 600;
 const AXIS_FLIP_CHANCE = 0.5;
-const SPHERICAL_BIAS = 0.82;
+const NON_SPHERICAL_FLIP_CHANCE = 0.75;
+const NON_SPHERICAL_SCALE_RANGE = [0.75, 1.35];
+const SPHERICAL_BIAS = 0.8;
 const SPHERICAL_EXTRA_LONG_TRAIL_CHANCE = 0.25;
 const SPHERICAL_EXTRA_LONG_TRAIL_MULTIPLIER = 35;
-const PURE_HUES = [0, 1 / 6, 1 / 3, 2 / 3];
+const PURE_HUES = [0, 1 / 12, 1 / 6, 1 / 3, 1 / 2, 2 / 3, 5 / 6, 11 / 12];
+const SECONDARY_PATTERN = "rosette";
+const SECONDARY_COUNT = [90, 180];
+const SECONDARY_RADIUS = [80, 180];
+const SECONDARY_LIFE = [1.2, 2.1];
+const SECONDARY_TRAIL_STRETCH = [3.2, 6.2];
+const SECONDARY_DRAG = [0.965, 0.99];
+const SECONDARY_DRIFT = { x: [-1.2, 1.2], y: [-0.8, 0.8], z: [-1.2, 1.2] };
+const SECONDARY_POINT_SIZE = [1.1, 2.2];
+const SECONDARY_GRAVITY_SCALE = [1.05, 1.4];
+const SECONDARY_HUE_VARIANCE = 0.12;
+const SECONDARY_TRAIL_BOOST = 2.6;
+const SECONDARY_CURVE_STRENGTH = [16, 32];
+const SECONDARY_CURVE_DECAY = [0.5, 0.95];
+const SECONDARY_GRAVITY_RAMP = [1.0, 1.6];
+const SECONDARY_DOT_TRAIL_CHANCE = 0.7;
+const SECONDARY_DOT_TRAIL_SAMPLES = [9, 16];
 const SPHERE_DENSITY_BOOST = 1.45;
 const SPHERE_RADIUS_BOOST = 2.75;
 const SPHERE_TRAIL_MULTIPLIER = 28;
@@ -163,9 +196,9 @@ const SPHERICAL_CURLY_BOOST = 1.7;
 const SPHERICAL_SPIRAL_STRENGTH = [12, 22];
 const SPHERICAL_SPIRAL_SPEED = [4.5, 7.5];
 const FLASH_CHANCE = 0.65;
-const FLASH_LIFE = [0.03, 0.06];
-const FLASH_SIZE = [60, 120];
-const FLASH_OPACITY = [1, 1];
+const FLASH_LIFE = [0.05, 0.1];
+const FLASH_SIZE = [75, 140];
+const FLASH_OPACITY = [1, 1.1];
 const explosionProfiles = [
   {
     pattern: "burst",
@@ -908,9 +941,17 @@ function randomRotationQuaternion() {
   );
 }
 
-function randomMirrorVector() {
-  const flip = () => (Math.random() < AXIS_FLIP_CHANCE ? -1 : 1);
+function randomMirrorVector(flipChance = AXIS_FLIP_CHANCE) {
+  const flip = () => (Math.random() < flipChance ? -1 : 1);
   return new THREE.Vector3(flip(), flip(), flip());
+}
+
+function randomScaleVector(range) {
+  return new THREE.Vector3(
+    rand(range[0], range[1]),
+    rand(range[0], range[1]),
+    rand(range[0], range[1])
+  );
 }
 
 function scaleTrailSamples(samples) {
@@ -1034,6 +1075,18 @@ function directionFor(pattern, i, count, data) {
       Math.cos(t) * radius,
       Math.sin(t) * radius,
       Math.cos(t * 0.3) * 0.35
+    ).normalize();
+  }
+
+  if (pattern === "rosette") {
+    const petals = 8;
+    const angle = (i / count) * Math.PI * 2;
+    const petal = Math.abs(Math.cos(angle * petals));
+    const radius = 0.45 + 0.45 * petal;
+    return new THREE.Vector3(
+      Math.cos(angle) * radius,
+      Math.sin(angle) * radius,
+      rand(-0.12, 0.12)
     ).normalize();
   }
 
@@ -1508,6 +1561,8 @@ class Firework {
     this.trailWidthScale = options.trailWidthScale ?? 1;
     this.trailBrightness = options.trailBrightness ?? 1;
     this.trailFadePower = options.trailFadePower ?? TRAIL_FADE_POWER;
+    this.trailVisible = options.trailVisible ?? true;
+    this.trailOpacity = options.trailOpacity ?? 0.9;
     this.trailHistory = options.trailHistory ?? false;
     this.spiralStrength = options.spiralStrength ?? 0;
     this.spiralSpeed = options.spiralSpeed ?? 0;
@@ -1520,6 +1575,7 @@ class Firework {
     this.trajectoryVectors = null;
     this.directionRotation = options.directionRotation ?? null;
     this.directionMirror = options.directionMirror ?? null;
+    this.directionScale = options.directionScale ?? null;
     this.gravityScale = options.gravityScale ?? 1;
     this.gravityRamp = options.gravityRamp ?? 0;
     this.curveStrength = options.curveStrength ?? 0;
@@ -1594,6 +1650,9 @@ class Firework {
 
     for (let i = 0; i < this.count; i += 1) {
       const dir = directionFor(this.pattern, i, this.count, this.patternData);
+      if (this.directionScale) {
+        dir.multiply(this.directionScale).normalize();
+      }
       if (this.directionMirror) {
         dir.multiply(this.directionMirror);
       }
@@ -1689,7 +1748,7 @@ class Firework {
         map: circleTexture,
         alphaTest: 0.35,
         transparent: true,
-        opacity: 0.9,
+        opacity: this.trailOpacity,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
@@ -1698,7 +1757,7 @@ class Firework {
       this.trailMaterial = new THREE.LineBasicMaterial({
         vertexColors: true,
         transparent: true,
-        opacity: 0.9,
+        opacity: this.trailOpacity,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
         linewidth: this.trailWidthScale,
@@ -1894,7 +1953,10 @@ function buildExplosionOptions(profile, hueBase) {
   const extremeTrajectory = Math.random() < EXTREME_TRAIL_CHANCE;
   const bendTrails = extremeTrajectory || Math.random() < BEND_TRAIL_CHANCE;
   const cascadeTrail = Math.random() < CASCADE_TRAIL_CHANCE;
-  const droopTrail = Math.random() < DROOP_TRAIL_CHANCE;
+  const droopRoll = Math.random();
+  const droopExtra = droopRoll < DROOP_EXTRA_CHANCE;
+  const megaDroop = Math.random() < MEGA_DROOP_CHANCE;
+  const droopTrail = droopRoll < DROOP_TRAIL_CHANCE || megaDroop;
   const extraCurl = Math.random() < CURLY_TRAIL_CHANCE;
   const sphericalCurly =
     profile.spherical && Math.random() < SPHERICAL_CURLY_CHANCE;
@@ -1915,6 +1977,7 @@ function buildExplosionOptions(profile, hueBase) {
   const trajectoryTrail = bendTrails || cascadeTrail || droopTrail;
   const dotTrailChance = profile.dotTrailChance ?? DOT_TRAIL_CHANCE;
   const dotTrail = trajectoryTrail || Math.random() < dotTrailChance;
+  const noTrail = Math.random() < NO_TRAIL_CHANCE;
   const dotTrailSamples = scaleTrailSamples(
     profile.dotTrailSamples ?? DOT_TRAIL_SAMPLES
   );
@@ -1949,9 +2012,16 @@ function buildExplosionOptions(profile, hueBase) {
   const longTrail = Math.random() < LONG_TRAIL_CHANCE;
   const extraLongTrail =
     Math.random() < EXTRA_LONG_TRAIL_CHANCE ? EXTRA_LONG_TRAIL_MULTIPLIER : 1;
+  const droopExtraTrail = droopExtra ? DROOP_EXTRA_TRAIL_MULTIPLIER : 1;
+  const megaDroopTrail =
+    megaDroop
+      ? MEGA_DROOP_TRAIL_MULTIPLIER *
+        (profile.spherical ? MEGA_DROOP_SPHERE_TRAIL_MULTIPLIER : 1)
+      : 1;
   const lengthBoost = Math.random() < LENGTH_BOOST_CHANCE;
   const lengthMultiplier = lengthBoost ? LENGTH_BOOST_MULTIPLIER : 1;
-  const swirlTrails = Math.random() < SWIRL_TRAIL_CHANCE;
+  const swirlHeavy = Math.random() < SWIRL_HEAVY_CHANCE;
+  const swirlTrails = swirlHeavy || Math.random() < SWIRL_TRAIL_CHANCE;
   const softFade = Math.random() < SOFT_FADE_CHANCE;
   const lifeBoost = Math.random() < LIFE_BOOST_CHANCE;
   const lifeTrailMultiplier = lifeBoost ? LIFE_BOOST_TRAIL_MULTIPLIER : 1;
@@ -1966,6 +2036,12 @@ function buildExplosionOptions(profile, hueBase) {
   if (droopTrail) {
     lifeScale *= DROOP_LIFE_MULTIPLIER;
   }
+  if (droopExtra) {
+    lifeScale *= DROOP_EXTRA_LIFE_MULTIPLIER;
+  }
+  if (megaDroop) {
+    lifeScale *= MEGA_DROOP_LIFE_MULTIPLIER;
+  }
   const trailGrowth = Math.max(
     longTrail ? LONG_TRAIL_GROWTH : 0,
     trajectoryTrail ? TRAJECTORY_TRAIL_GROWTH : 0
@@ -1973,6 +2049,8 @@ function buildExplosionOptions(profile, hueBase) {
   const gravityRampBoost = longTrail ? LONG_GRAVITY_RAMP_BOOST : 0;
   const cascadeGravityRampBoost = cascadeTrail ? CASCADE_GRAVITY_RAMP_BOOST : 0;
   const droopGravityRampBoost = droopTrail ? DROOP_GRAVITY_RAMP_BOOST : 0;
+  const megaDroopGravityRampBoost = megaDroop ? MEGA_DROOP_GRAVITY_RAMP_BOOST : 0;
+  const swirlDroopBoost = swirlHeavy ? SWIRL_DROOP_GRAVITY_BOOST : 0;
   const longTrailBoost = longTrail ? LONG_TRAIL_MULTIPLIER : 1;
   const trajectoryTrailBoost = trajectoryTrail ? TRAJECTORY_TRAIL_MULTIPLIER : 1;
   const extremeTrailBoost = extremeTrajectory ? EXTREME_TRAIL_MULTIPLIER : 1;
@@ -1991,8 +2069,16 @@ function buildExplosionOptions(profile, hueBase) {
     ? range(SPHERICAL_SPIRAL_STRENGTH)
     : 0;
   const spiralSpeed = sphericalCurly ? range(SPHERICAL_SPIRAL_SPEED) : 0;
-  const swirlStrength = swirlTrails ? range(SWIRL_STRENGTH) : 0;
-  const swirlSpeed = swirlTrails ? range(SWIRL_SPEED) : 0;
+  const swirlStrength = swirlHeavy
+    ? range(SWIRL_HEAVY_STRENGTH)
+    : swirlTrails
+      ? range(SWIRL_STRENGTH)
+      : 0;
+  const swirlSpeed = swirlHeavy
+    ? range(SWIRL_HEAVY_SPEED)
+    : swirlTrails
+      ? range(SWIRL_SPEED)
+      : 0;
   const trajectoryVariant =
     Math.random() < TRAJECTORY_VARIANT_CHANCE ? pick(TRAJECTORY_VARIANTS) : null;
   const trajectoryMode = trajectoryVariant ? trajectoryVariant.name : null;
@@ -2008,8 +2094,17 @@ function buildExplosionOptions(profile, hueBase) {
     profile.spherical && Math.random() < SPHERICAL_EXTRA_LONG_TRAIL_CHANCE
       ? SPHERICAL_EXTRA_LONG_TRAIL_MULTIPLIER
       : 1;
+  const nonSpherical = !profile.spherical;
   const directionRotation = randomRotationQuaternion();
-  const directionMirror = randomMirrorVector();
+  if (nonSpherical) {
+    directionRotation.multiply(randomRotationQuaternion());
+  }
+  const directionMirror = nonSpherical
+    ? randomMirrorVector(NON_SPHERICAL_FLIP_CHANCE)
+    : randomMirrorVector();
+  const directionScale = nonSpherical
+    ? randomScaleVector(NON_SPHERICAL_SCALE_RANGE)
+    : null;
   const trailBrightness = droopTrail ? DROOP_TRAIL_BRIGHTNESS : 1;
   const baseDrag = range(profile.drag);
   const dragBoost =
@@ -2043,7 +2138,9 @@ function buildExplosionOptions(profile, hueBase) {
       trajectoryTrailBoost *
       extremeTrailBoost *
       extraLongTrail *
-      sphericalExtraTrail,
+      sphericalExtraTrail *
+      droopExtraTrail *
+      megaDroopTrail,
     drag,
     drift: randomVec3(profile.drift),
     pointSize: range(profile.pointSize) * particleScale,
@@ -2054,13 +2151,16 @@ function buildExplosionOptions(profile, hueBase) {
       range(profile.gravityScale) *
       sphereSpeedBoost *
       (cascadeTrail ? CASCADE_GRAVITY_SCALE_MULTIPLIER : 1) *
-      (droopTrail ? DROOP_GRAVITY_SCALE_MULTIPLIER : 1),
+      (droopTrail ? DROOP_GRAVITY_SCALE_MULTIPLIER : 1) *
+      (megaDroop ? MEGA_DROOP_GRAVITY_SCALE_MULTIPLIER : 1),
     gravityRamp:
       gravityRamp +
       gravityRampBoost +
       gravityRampExtra +
       cascadeGravityRampBoost +
-      droopGravityRampBoost,
+      droopGravityRampBoost +
+      swirlDroopBoost +
+      megaDroopGravityRampBoost,
     curveStrength: curveStrength * curveBoost,
     curveDecay,
     trailGrowth,
@@ -2070,9 +2170,16 @@ function buildExplosionOptions(profile, hueBase) {
     trailPointScale,
     trailWidthScale,
     trailBrightness,
-    trailFadePower: softFade ? SOFT_FADE_POWER : TRAIL_FADE_POWER,
+    trailFadePower: droopExtra
+      ? DROOP_EXTRA_FADE_POWER
+      : softFade
+        ? SOFT_FADE_POWER
+        : TRAIL_FADE_POWER,
+    trailVisible: !noTrail,
+    trailOpacity: noTrail ? 0 : 0.9,
     directionRotation,
     directionMirror,
+    directionScale,
     spiralStrength,
     spiralSpeed,
     swirlStrength,
@@ -2094,13 +2201,27 @@ function spawnFlash(position, hue) {
   scene.add(flash.sprite);
 }
 
-function buildSecondaryProfile(profile) {
-  const countMin = Math.max(10, Math.round(profile.count[0] * MULTI_BLAST_COUNT_SCALE));
-  const countMax = Math.max(countMin, Math.round(profile.count[1] * MULTI_BLAST_COUNT_SCALE));
+function buildSecondaryProfile() {
+  const countMin = Math.max(10, Math.round(SECONDARY_COUNT[0] * MULTI_BLAST_COUNT_SCALE));
+  const countMax = Math.max(countMin, Math.round(SECONDARY_COUNT[1] * MULTI_BLAST_COUNT_SCALE));
   return {
-    ...profile,
+    pattern: SECONDARY_PATTERN,
     count: [countMin, countMax],
-    scale: (profile.scale ?? 1) * MULTI_BLAST_RADIUS_SCALE,
+    radius: SECONDARY_RADIUS,
+    life: SECONDARY_LIFE,
+    trailStretch: SECONDARY_TRAIL_STRETCH,
+    drag: SECONDARY_DRAG,
+    drift: SECONDARY_DRIFT,
+    pointSize: SECONDARY_POINT_SIZE,
+    gravityScale: SECONDARY_GRAVITY_SCALE,
+    hueVariance: SECONDARY_HUE_VARIANCE,
+    trailBoost: SECONDARY_TRAIL_BOOST,
+    curveStrength: SECONDARY_CURVE_STRENGTH,
+    curveDecay: SECONDARY_CURVE_DECAY,
+    gravityRamp: SECONDARY_GRAVITY_RAMP,
+    dotTrailChance: SECONDARY_DOT_TRAIL_CHANCE,
+    dotTrailSamples: SECONDARY_DOT_TRAIL_SAMPLES,
+    scale: MULTI_BLAST_RADIUS_SCALE,
   };
 }
 
@@ -2110,7 +2231,7 @@ function scheduleSecondaryBlasts(origin, profile, hueBase) {
   }
 
   const count = randInt(MULTI_BLAST_COUNT[0], MULTI_BLAST_COUNT[1]);
-  const secondaryProfile = buildSecondaryProfile(profile);
+  const secondaryProfile = buildSecondaryProfile();
 
   for (let i = 0; i < count; i += 1) {
     const spread = rand(MULTI_BLAST_SPREAD[0], MULTI_BLAST_SPREAD[1]);
@@ -2142,7 +2263,9 @@ function explodeAt(position, profile, hueBase, allowMultiBlast = true) {
 
   fireworks.push(firework);
   scene.add(firework.points);
-  scene.add(firework.trail);
+  if (firework.trailVisible && firework.trail) {
+    scene.add(firework.trail);
+  }
 
   if (allowMultiBlast) {
     scheduleSecondaryBlasts(position, chosen, hueBase);
@@ -2260,7 +2383,9 @@ function animate() {
     const firework = fireworks[i];
     if (!firework.update(delta)) {
       scene.remove(firework.points);
-      scene.remove(firework.trail);
+      if (firework.trailVisible && firework.trail) {
+        scene.remove(firework.trail);
+      }
       firework.dispose();
       fireworks.splice(i, 1);
     }
