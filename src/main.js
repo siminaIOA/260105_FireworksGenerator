@@ -128,10 +128,19 @@ const BIG_RADIUS_MULTIPLIER = 1.45;
 const BIG_TRAIL_MULTIPLIER = 3;
 const BIG_PARTICLE_MULTIPLIER = 1;
 const MULTI_HUE_CHANCE = 0.3;
-const HUE_VARIANCE_BOOST = [0.06, 0.22];
-const MAX_HUE_VARIANCE = 0.35;
-const COLOR_SATURATION_RANGE = [0.95, 1];
-const COLOR_LIGHTNESS_RANGE = [0.62, 0.78];
+const HUE_VARIANCE_BOOST = [0.04, 0.12];
+const MAX_HUE_VARIANCE = 0.25;
+const EXTRA_COLOR_VARIANCE_CHANCE = 0.25;
+const EXTRA_COLOR_VARIANCE = [0.02, 0.08];
+const MAX_SINGLE_HUE_VARIANCE = 0.12;
+const FERRARI_RED_CHANCE = 0.1;
+const FERRARI_RED_HUE = 0.01;
+const FERRARI_RED_HUE_VARIANCE = 0.02;
+const CROSS_EXTRA_ROTATION_COUNT = 2;
+const COLOR_SATURATION_RANGE = [0.98, 1];
+const COLOR_LIGHTNESS_RANGE = [0.62, 0.72];
+const HIGH_LIGHTNESS_THRESHOLD = 0.5;
+const HIGH_LIGHTNESS_INTENSITY_SCALE = 0.2;
 const BASE_TRAIL_BRIGHTNESS = 1.15;
 const HEAD_POINT_RELATIVE_SCALE = 1.1;
 const GLOBAL_POINT_SCALE = 1.25;
@@ -147,6 +156,8 @@ const LENGTH_BOOST_CHANCE = 0.55;
 const LENGTH_BOOST_MULTIPLIER = 2.5;
 const EXTRA_LONGER_TRAIL_CHANCE = 0.4;
 const EXTRA_LONGER_TRAIL_MULTIPLIER = 4.0;
+const MID_LONG_TRAIL_CHANCE = 0.5;
+const MID_LONG_TRAIL_MULTIPLIER = 100.0;
 const BEND_TRAIL_CHANCE = 1;
 const CURLY_TRAIL_CHANCE = 0.35;
 const SWIRL_TRAIL_CHANCE = 0.35;
@@ -167,7 +178,7 @@ const CASCADE_GRAVITY_SCALE_MULTIPLIER = 1.1;
 const CASCADE_GRAVITY_RAMP_BOOST = 0.6;
 const CASCADE_DRAG_BOOST = 0.01;
 const DROOP_TRAIL_CHANCE = 0.35;
-const DROOP_TRAIL_SAMPLES = [40, 64];
+const DROOP_TRAIL_SAMPLES = [50, 75];
 const DROOP_TRAIL_POINT_SCALE = 1.1;
 const DROOP_TRAIL_BRIGHTNESS = 1.4;
 const DROOP_GRAVITY_SCALE_MULTIPLIER = 1.6;
@@ -175,28 +186,47 @@ const DROOP_GRAVITY_RAMP_BOOST = 1.3;
 const DROOP_DRAG_BOOST = 0.02;
 const DROOP_LIFE_MULTIPLIER = 1.4;
 const DROOP_EXTRA_CHANCE = 0.15;
-const DROOP_EXTRA_TRAIL_MULTIPLIER = 1.5;
+const DROOP_EXTRA_TRAIL_MULTIPLIER = 3;
 const DROOP_EXTRA_LIFE_MULTIPLIER = 1.25;
 const DROOP_EXTRA_FADE_POWER = 0.85;
 const MEGA_DROOP_CHANCE = 0.1;
-const MEGA_DROOP_TRAIL_MULTIPLIER = 2;
+const MEGA_DROOP_TRAIL_MULTIPLIER = 5;
 const MEGA_DROOP_LIFE_MULTIPLIER = 1.6;
 const MEGA_DROOP_GRAVITY_SCALE_MULTIPLIER = 2.0;
-const MEGA_DROOP_GRAVITY_RAMP_BOOST = 1.8;
+const MEGA_DROOP_GRAVITY_RAMP_BOOST = 2.5;
 const MEGA_DROOP_SPHERE_TRAIL_MULTIPLIER = 1.4;
 const SPHERICAL_DROOP_CHANCE = 0.9;
 const SPHERICAL_DROOP_TRAIL_MULTIPLIER = 2.6;
-const SPHERICAL_DROOP_LIFE_MULTIPLIER = 2.4;
+const SPHERICAL_DROOP_LIFE_MULTIPLIER = 5;
 const SPHERICAL_DROOP_GRAVITY_RAMP_BOOST = 0.7;
 const SPHERICAL_DROOP_DRAG_BOOST = 0.03;
 const CLICK_DROOP_CHANCE = 0.15;
-const CLICK_DROOP_TRAIL_MULTIPLIER = 2.0;
+const CLICK_DROOP_TRAIL_MULTIPLIER = 5;
 const CLICK_DROOP_LIFE_MULTIPLIER = 1.2;
 const CLICK_CURLY_CHANCE = 0.24;
 const SPAGHETTI_TO_CROSS_CHANCE = 0.4;
 const CURLY_REPLACEMENT_CHANCE = 0.4;
 const CURLY_REPLACEMENT_STRAIGHT_CHANCE = 0.5;
 const CURLY_REPLACEMENT_TRAJECTORY_BOOST = 0.2;
+const SPAGHETTI_FIREWORK_CHANCE = 0.25;
+const SPAGHETTI_CURVE_MULTIPLIER = 1.4;
+const SPAGHETTI_VARIANCE_RANGE = [1.15, 1.8];
+const SPAGHETTI_TRAIL_MULTIPLIER = 1.6;
+const SPAGHETTI_LIFE_MULTIPLIER = 0.03;
+const SPAGHETTI_TRAIL_GROWTH_BOOST = 0.6;
+const SPAGHETTI_SWIRL_MULTIPLIER = 1.0;
+const SPAGHETTI_CURL_NOISE_STRENGTH_MULTIPLIER = 20;
+const SPAGHETTI_CURL_NOISE_SCALE_MULTIPLIER = 1.0;
+const SPAGHETTI_CURL_NOISE_SPEED_MULTIPLIER = 1.35;
+const SPAGHETTI_TWIST_MULTIPLIER = 1.04;
+const SPAGHETTI_Y_AXIS_CHANCE = 0.55;
+const SPAGHETTI_Y_AXIS_MULTIPLIER = 2.4;
+const SPAGHETTI_TRAIL_SAMPLE_MULTIPLIER = 4;
+const SPAGHETTI_DROOP_CHANCE = 0.85;
+const SPAGHETTI_DROOP_TRAIL_MULTIPLIER = 1.6;
+const SPAGHETTI_DROOP_GRAVITY_SCALE_MULTIPLIER = 1.35;
+const SPAGHETTI_DROOP_GRAVITY_RAMP_BOOST = 0.5;
+const SPAGHETTI_DROOP_DRAG_BOOST = 0.03;
 const SNOWFLAKE_TRAJECTORY_CHANCE = 0.1;
 const SNOWFLAKE_SWAY_STRENGTH = [6, 14];
 const SNOWFLAKE_SWAY_SPEED = [1.2, 2.4];
@@ -291,22 +321,25 @@ const SPHERICAL_CURLY_CHANCE = 0.12;
 const SPHERICAL_CURLY_BOOST = 1.7;
 const SPHERICAL_SPIRAL_STRENGTH = [12, 22];
 const SPHERICAL_SPIRAL_SPEED = [4.5, 7.5];
-const FLASH_CHANCE = 1.0;
-const FLASH_LIFE = [0.08, 0.16];
-const FLASH_SIZE = [18, 30];
-const FLASH_OPACITY = [12, 28];
+const FLASH_CHANCE = 0.65;
+const FLASH_LIFE = [0.04, 0.08];
+const FLASH_SIZE = [5.5, 9.5];
+const FLASH_OPACITY = [14, 28];
 const FLASH_DIM_CHANCE = 0.35;
 const FLASH_BRIGHT_CHANCE = 0.2;
 const FLASH_DIM_SCALE = [0.65, 0.9];
-const FLASH_BRIGHT_SCALE = [1.5, 2.2];
+const FLASH_BRIGHT_SCALE = [1.6, 2.3];
 const FLASH_DIM_OPACITY_SCALE = [0.55, 0.8];
-const FLASH_BRIGHT_OPACITY_SCALE = [1.4, 2.0];
+const FLASH_BRIGHT_OPACITY_SCALE = [1.4, 2.1];
 const FLASH_OPACITY_MIN = 0.7;
 const FLASH_OPACITY_MAX = 32;
+const FLASH_COLOR_SATURATION = [0.9, 1];
+const FLASH_COLOR_LIGHTNESS = [0.78, 0.92];
+const FLASH_COLOR_VARIANCE = 0.08;
 const FLASH_BURST_COUNT = [2, 4];
-const FLASH_BURST_OFFSET = [3, 12];
-const FLASH_BURST_SIZE_SCALE = [0.75, 1.6];
-const FLASH_BURST_OPACITY_SCALE = [0.55, 0.95];
+const FLASH_BURST_OFFSET = [4, 12];
+const FLASH_BURST_SIZE_SCALE = [0.95, 2.0];
+const FLASH_BURST_OPACITY_SCALE = [0.6, 1.0];
 const FLASH_BURST_LIFE_SCALE = [0.6, 1.05];
 const explosionProfiles = [
   {
@@ -2252,11 +2285,18 @@ class Firework {
       const baseHue = options.hues ? pick(options.hues) : options.hue;
       const hue =
         (baseHue + rand(-options.hueVariance, options.hueVariance) + 1) % 1;
-      const color = hslColor(
-        hue,
-        rand(COLOR_SATURATION_RANGE[0], COLOR_SATURATION_RANGE[1]),
-        rand(COLOR_LIGHTNESS_RANGE[0], COLOR_LIGHTNESS_RANGE[1])
+      const saturation = rand(
+        COLOR_SATURATION_RANGE[0],
+        COLOR_SATURATION_RANGE[1]
       );
+      const lightness = rand(
+        COLOR_LIGHTNESS_RANGE[0],
+        COLOR_LIGHTNESS_RANGE[1]
+      );
+      const color = hslColor(hue, saturation, lightness);
+      if (lightness >= HIGH_LIGHTNESS_THRESHOLD) {
+        color.multiplyScalar(HIGH_LIGHTNESS_INTENSITY_SCALE);
+      }
 
       this.colors[idx] = color.r;
       this.colors[idx + 1] = color.g;
@@ -2558,8 +2598,15 @@ function buildExplosionOptions(
   const scale = profile.scale ?? 1;
   let localForceStraight = forceStraight;
   let baseHue = hueBase ?? Math.random();
-  const baseVariance = profile.hueVariance ?? 0.1;
+  const spaghetti = !localForceStraight && Math.random() < SPAGHETTI_FIREWORK_CHANCE;
+  const spaghettiVariance = spaghetti ? range(SPAGHETTI_VARIANCE_RANGE) : 1;
+  let baseVariance = profile.hueVariance ?? 0.1;
   const nonSpherical = !profile.spherical;
+  const ferrariRed = profile.spherical && Math.random() < FERRARI_RED_CHANCE;
+  if (ferrariRed) {
+    baseHue = FERRARI_RED_HUE;
+    baseVariance = Math.min(baseVariance, FERRARI_RED_HUE_VARIANCE);
+  }
   if (nonSpherical && Math.random() < NON_SPHERICAL_COLOR_VARIATION_CHANCE) {
     baseHue =
       (pick(PURE_HUES) + rand(-NON_SPHERICAL_HUE_JITTER, NON_SPHERICAL_HUE_JITTER) + 1) %
@@ -2580,17 +2627,23 @@ function buildExplosionOptions(
   const megaDroop = Math.random() < MEGA_DROOP_CHANCE;
   const sphericalDroop =
     profile.spherical && Math.random() < SPHERICAL_DROOP_CHANCE;
+  const spaghettiDroop = spaghetti && Math.random() < SPAGHETTI_DROOP_CHANCE;
   const droopTrail =
-    droopRoll < DROOP_TRAIL_CHANCE || megaDroop || sphericalDroop || clickDroop;
+    droopRoll < DROOP_TRAIL_CHANCE ||
+    megaDroop ||
+    sphericalDroop ||
+    clickDroop ||
+    spaghettiDroop;
   const sphericalDroopTrailBoost = sphericalDroop ? SPHERICAL_DROOP_TRAIL_MULTIPLIER : 1;
   const sphericalDroopLifeBoost = sphericalDroop ? SPHERICAL_DROOP_LIFE_MULTIPLIER : 1;
-  const allowCurly = !localForceStraight && (!profile.spherical || clickCurly);
+  const allowCurly =
+    !localForceStraight && (!profile.spherical || clickCurly || spaghetti);
   const extraCurl = allowCurly && Math.random() < CURLY_TRAIL_CHANCE;
   const sphericalCurly =
     allowCurly && profile.spherical && Math.random() < SPHERICAL_CURLY_CHANCE;
-  let curlyTrajectory = extraCurl || sphericalCurly || clickCurly;
+  let curlyTrajectory = extraCurl || sphericalCurly || clickCurly || spaghetti;
   let curlySuppressed = false;
-  if (curlyTrajectory && Math.random() < CURLY_REPLACEMENT_CHANCE) {
+  if (!spaghetti && curlyTrajectory && Math.random() < CURLY_REPLACEMENT_CHANCE) {
     curlyTrajectory = false;
     curlySuppressed = true;
     if (Math.random() < CURLY_REPLACEMENT_STRAIGHT_CHANCE) {
@@ -2602,8 +2655,11 @@ function buildExplosionOptions(
       (sphericalCurly ? SPHERICAL_CURLY_BOOST : 1) *
       CURLY_CURVE_MULTIPLIER
     : 1;
+  const curveBoostAdjusted = curveBoost * (spaghetti ? SPAGHETTI_CURVE_MULTIPLIER : 1);
   const gravityRampExtra = curlyTrajectory ? CURLY_GRAVITY_RAMP_BOOST : 0;
-  const trailGrowthExtra = curlyTrajectory ? CURLY_TRAIL_GROWTH_BOOST : 0;
+  const trailGrowthExtra =
+    (curlyTrajectory ? CURLY_TRAIL_GROWTH_BOOST : 0) +
+    (spaghetti ? SPAGHETTI_TRAIL_GROWTH_BOOST : 0);
   const sphericalTrailBoost =
     profile.spherical && Math.random() < SPHERICAL_TRAIL_CHANCE
       ? SPHERICAL_TRAIL_MULTIPLIER
@@ -2637,6 +2693,12 @@ function buildExplosionOptions(
     const droopSamples = randInt(droopTrailSamples[0], droopTrailSamples[1]);
     trailSamples = Math.max(trailSamples, droopSamples);
   }
+  if (spaghetti) {
+    trailSamples = Math.max(
+      2,
+      Math.round(trailSamples * SPAGHETTI_TRAIL_SAMPLE_MULTIPLIER)
+    );
+  }
   const trailPointScale = dotTrail
     ? DOT_TRAIL_DOT_SCALE *
       (extremeTrajectory ? EXTREME_TRAIL_POINT_SCALE : 1) *
@@ -2658,6 +2720,7 @@ function buildExplosionOptions(
       ? MEGA_DROOP_TRAIL_MULTIPLIER *
         (profile.spherical ? MEGA_DROOP_SPHERE_TRAIL_MULTIPLIER : 1)
       : 1;
+  const spaghettiDroopTrail = spaghettiDroop ? SPAGHETTI_DROOP_TRAIL_MULTIPLIER : 1;
   const clickDroopTrail = clickDroop ? CLICK_DROOP_TRAIL_MULTIPLIER : 1;
   const curlyTrailBoost = clickCurly ? CURLY_TRAIL_LENGTH_MULTIPLIER : 1;
   const lengthBoost = Math.random() < LENGTH_BOOST_CHANCE;
@@ -2666,12 +2729,19 @@ function buildExplosionOptions(
     Math.random() < EXTRA_LONGER_TRAIL_CHANCE
       ? EXTRA_LONGER_TRAIL_MULTIPLIER
       : 1;
+  const midLongTrail =
+    Math.random() < MID_LONG_TRAIL_CHANCE
+      ? MID_LONG_TRAIL_MULTIPLIER
+      : 1;
   const swirlHeavy = !localForceStraight && Math.random() < SWIRL_HEAVY_CHANCE;
   const curlySwirl =
     !localForceStraight && curlyTrajectory && Math.random() < CURLY_SWIRL_CHANCE;
-  const swirlTrails =
+  let swirlTrails =
     !localForceStraight &&
     (swirlHeavy || curlySwirl || Math.random() < SWIRL_TRAIL_CHANCE);
+  if (spaghetti && !localForceStraight) {
+    swirlTrails = true;
+  }
   const softFade = Math.random() < SOFT_FADE_CHANCE;
   const lifeBoost = Math.random() < LIFE_BOOST_CHANCE;
   const lifeTrailMultiplier = lifeBoost ? LIFE_BOOST_TRAIL_MULTIPLIER : 1;
@@ -2698,6 +2768,9 @@ function buildExplosionOptions(
   if (clickCurly) {
     lifeScale *= CURLY_TRAIL_LIFE_MULTIPLIER;
   }
+  if (spaghetti) {
+    lifeScale *= SPAGHETTI_LIFE_MULTIPLIER;
+  }
   if (sphericalDroop) {
     lifeScale *= sphericalDroopLifeBoost;
   }
@@ -2716,10 +2789,15 @@ function buildExplosionOptions(
   const longTrailBoost = longTrail ? LONG_TRAIL_MULTIPLIER : 1;
   const trajectoryTrailBoost = trajectoryTrail ? TRAJECTORY_TRAIL_MULTIPLIER : 1;
   const extremeTrailBoost = extremeTrajectory ? EXTREME_TRAIL_MULTIPLIER : 1;
-  const multiHue = !nonSpherical && Math.random() < MULTI_HUE_CHANCE;
+  const multiHue =
+    !nonSpherical && !ferrariRed && Math.random() < MULTI_HUE_CHANCE;
+  const extraVariance =
+    !multiHue && Math.random() < EXTRA_COLOR_VARIANCE_CHANCE
+      ? range(EXTRA_COLOR_VARIANCE)
+      : 0;
   const hueVariance = multiHue
     ? Math.min(baseVariance + range(HUE_VARIANCE_BOOST), MAX_HUE_VARIANCE)
-    : 0;
+    : Math.min(baseVariance + extraVariance, MAX_SINGLE_HUE_VARIANCE);
   const hues = multiHue
     ? Math.random() < MULTI_HUE_REPLACE_CHANCE
       ? Array.from({ length: randInt(2, 3) }, () => pick(STRONG_HUES))
@@ -2747,12 +2825,21 @@ function buildExplosionOptions(
       : swirlTrails
         ? range(SWIRL_SPEED)
         : 0;
+  const swirlStrengthAdjusted =
+    swirlStrength * (spaghetti ? SPAGHETTI_SWIRL_MULTIPLIER : 1);
+  const swirlSpeedAdjusted =
+    swirlSpeed * (spaghetti ? SPAGHETTI_SWIRL_MULTIPLIER : 1);
   const curlNoise =
     !localForceStraight &&
     !noTrail &&
     (Math.random() < CURL_NOISE_CHANCE || curlyTrajectory);
   const curlyVariant = curlyTrajectory ? pick(CURLY_VARIANTS) : null;
-  const curlyYAxisBoost = curlyTrajectory && Math.random() < CURLY_Y_AXIS_CHANCE;
+  const curlyYAxisBoost =
+    curlyTrajectory &&
+    Math.random() < (spaghetti ? SPAGHETTI_Y_AXIS_CHANCE : CURLY_Y_AXIS_CHANCE);
+  const curlYAxisMultiplier = curlyYAxisBoost
+    ? (spaghetti ? SPAGHETTI_Y_AXIS_MULTIPLIER : CURLY_Y_AXIS_MULTIPLIER)
+    : 1;
   const trajectoryVariantChance = Math.min(
     1,
     TRAJECTORY_VARIANT_CHANCE +
@@ -2783,6 +2870,21 @@ function buildExplosionOptions(
   const directionMirror = nonSpherical
     ? randomMirrorVector(NON_SPHERICAL_FLIP_CHANCE)
     : randomMirrorVector();
+  if (profile.pattern === "cross") {
+    for (let i = 0; i < CROSS_EXTRA_ROTATION_COUNT; i += 1) {
+      directionRotation.multiply(randomRotationQuaternion());
+    }
+    if (directionMirror.x > 0 && directionMirror.y > 0 && directionMirror.z > 0) {
+      const axis = randInt(0, 2);
+      if (axis === 0) {
+        directionMirror.x = -1;
+      } else if (axis === 1) {
+        directionMirror.y = -1;
+      } else {
+        directionMirror.z = -1;
+      }
+    }
+  }
   const directionScale = nonSpherical
     ? randomScaleVector(NON_SPHERICAL_SCALE_RANGE)
     : null;
@@ -2800,6 +2902,7 @@ function buildExplosionOptions(
     (cascadeTrail ? CASCADE_DRAG_BOOST : 0) +
     (droopTrail ? DROOP_DRAG_BOOST : 0) +
     (sphericalDroop ? SPHERICAL_DROOP_DRAG_BOOST : 0) +
+    (spaghettiDroop ? SPAGHETTI_DROOP_DRAG_BOOST : 0) +
     (snowflake ? SNOWFLAKE_DRAG_BOOST : 0);
   const drag = dragBoost > 0 ? Math.min(baseDrag + dragBoost, 0.995) : baseDrag;
 
@@ -2830,10 +2933,13 @@ function buildExplosionOptions(
       trajectoryTrailBoost *
       extremeTrailBoost *
       extraLongTrail *
+      midLongTrail *
+      (spaghetti ? SPAGHETTI_TRAIL_MULTIPLIER : 1) *
       extraLongerTrail *
       sphericalExtraTrail *
       droopExtraTrail *
       megaDroopTrail *
+      spaghettiDroopTrail *
       clickDroopTrail *
       sphericalDroopTrailBoost *
       curlyTrailBoost,
@@ -2863,7 +2969,8 @@ function buildExplosionOptions(
       sphereSpeedBoost *
       (cascadeTrail ? CASCADE_GRAVITY_SCALE_MULTIPLIER : 1) *
       (droopTrail ? DROOP_GRAVITY_SCALE_MULTIPLIER : 1) *
-      (megaDroop ? MEGA_DROOP_GRAVITY_SCALE_MULTIPLIER : 1),
+      (megaDroop ? MEGA_DROOP_GRAVITY_SCALE_MULTIPLIER : 1) *
+      (spaghettiDroop ? SPAGHETTI_DROOP_GRAVITY_SCALE_MULTIPLIER : 1),
     gravityRamp:
       gravityRamp +
       gravityRampBoost +
@@ -2872,8 +2979,9 @@ function buildExplosionOptions(
       droopGravityRampBoost +
       swirlDroopBoost +
       megaDroopGravityRampBoost +
+      (spaghettiDroop ? SPAGHETTI_DROOP_GRAVITY_RAMP_BOOST : 0) +
       sphericalDroopGravityRampBoost,
-    curveStrength: curveStrength * curveBoost,
+    curveStrength: curveStrength * curveBoostAdjusted,
     curveDecay,
     trailGrowth,
     trailHistory: trajectoryTrail,
@@ -2898,8 +3006,8 @@ function buildExplosionOptions(
     directionChaosMirrorChance: CHAOS_MIRROR_CHANCE,
     spiralStrength,
     spiralSpeed,
-    swirlStrength,
-    swirlSpeed,
+    swirlStrength: swirlStrengthAdjusted,
+    swirlSpeed: swirlSpeedAdjusted,
     snowflake,
     snowflakeSwayStrength: snowflake ? range(SNOWFLAKE_SWAY_STRENGTH) : 0,
     snowflakeSwaySpeed: snowflake ? range(SNOWFLAKE_SWAY_SPEED) : 0,
@@ -2910,23 +3018,42 @@ function buildExplosionOptions(
     curlNoiseStrength: curlNoise
       ? range(CURL_NOISE_STRENGTH) *
         (curlyTrajectory ? CURL_NOISE_CURLY_MULTIPLIER : 1) *
-        (curlyVariant ? curlyVariant.strength : 1)
+        (curlyVariant ? curlyVariant.strength : 1) *
+        (spaghetti ? SPAGHETTI_CURL_NOISE_STRENGTH_MULTIPLIER : 1) *
+        spaghettiVariance
       : 0,
     curlNoiseScale: curlNoise
       ? range(CURL_NOISE_SCALE) *
         (curlyTrajectory ? CURL_NOISE_CURLY_SCALE_MULTIPLIER : 1) *
-        (curlyVariant ? curlyVariant.scale : 1)
+        (curlyVariant ? curlyVariant.scale : 1) *
+        (spaghetti ? SPAGHETTI_CURL_NOISE_SCALE_MULTIPLIER : 1) *
+        spaghettiVariance
       : 0,
     curlNoiseSpeed: curlNoise
       ? range(CURL_NOISE_SPEED) *
         (curlyTrajectory ? CURL_NOISE_CURLY_SPEED_MULTIPLIER : 1) *
-        (curlyVariant ? curlyVariant.speed : 1)
+        (curlyVariant ? curlyVariant.speed : 1) *
+        (spaghetti ? SPAGHETTI_CURL_NOISE_SPEED_MULTIPLIER : 1) *
+        spaghettiVariance
       : 0,
-    curlNoiseYAxis: curlyYAxisBoost ? CURLY_Y_AXIS_MULTIPLIER : 1,
+    curlNoiseYAxis: curlYAxisMultiplier,
     curlNoiseTwist: curlyTrajectory
-      ? CURLY_TWIST_SCALE * (curlyVariant ? curlyVariant.twist : 1)
+      ? CURLY_TWIST_SCALE *
+        (curlyVariant ? curlyVariant.twist : 1) *
+        (spaghetti ? SPAGHETTI_TWIST_MULTIPLIER : 1) *
+        spaghettiVariance
       : 1,
   };
+}
+
+function flashColorFromHue(hue) {
+  const baseHue = hue ?? Math.random();
+  const flashHue = (baseHue + rand(-FLASH_COLOR_VARIANCE, FLASH_COLOR_VARIANCE) + 1) % 1;
+  return hslColor(
+    flashHue,
+    rand(FLASH_COLOR_SATURATION[0], FLASH_COLOR_SATURATION[1]),
+    rand(FLASH_COLOR_LIGHTNESS[0], FLASH_COLOR_LIGHTNESS[1])
+  );
 }
 
 function spawnFlash(position, hue) {
@@ -2934,8 +3061,7 @@ function spawnFlash(position, hue) {
     return;
   }
 
-  const color = new THREE.Color(1, 1, 1);
-  const mainFlash = new Flash(position, color);
+  const mainFlash = new Flash(position, flashColorFromHue(hue));
   flashes.push(mainFlash);
   scene.add(mainFlash.sprite);
 
@@ -2948,7 +3074,7 @@ function spawnFlash(position, hue) {
       Math.sin(angle) * radius,
       0
     );
-    const burstFlash = new Flash(position, color, {
+    const burstFlash = new Flash(position, flashColorFromHue(hue), {
       sizeScale: range(FLASH_BURST_SIZE_SCALE),
       opacityScale: range(FLASH_BURST_OPACITY_SCALE),
       lifeScale: range(FLASH_BURST_LIFE_SCALE),
