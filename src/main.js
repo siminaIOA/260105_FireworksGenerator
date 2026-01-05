@@ -96,7 +96,7 @@ let lastClickSignature = "";
 const fireworks = [];
 const flashes = [];
 const detonationQueue = [];
-const BLAST_SCALE = 22.378356;
+const BLAST_SCALE = 33.777331;
 const TRAIL_SCALE = 6.5;
 const GLOBAL_LIFE_SCALE = 1.35;
 const SMALL_BLAST_CHANCE = 0.8;
@@ -112,7 +112,7 @@ const DOT_TRAIL_DOT_SCALE = 1.2;
 const DOT_PARTICLE_SCALE = 1.1;
 const DOT_TRAIL_SAMPLES = [5, 9];
 const NO_TRAIL_CHANCE = 0.25;
-const TRAIL_SAMPLE_SCALE = 0.1728242578125;
+const TRAIL_SAMPLE_SCALE = 0.26830966025390625;
 const MULTI_CLICK_CHANCE = 0;
 const MULTI_CLICK_COUNT = [2, 4];
 const MULTI_CLICK_DELAY = [0.05, 0.18];
@@ -139,8 +139,11 @@ const FERRARI_RED_HUE_VARIANCE = 0.02;
 const CROSS_EXTRA_ROTATION_COUNT = 2;
 const COLOR_SATURATION_RANGE = [0.98, 1];
 const COLOR_LIGHTNESS_RANGE = [0.62, 0.72];
+const COLOR_GLOBAL_INTENSITY_SCALE = 1.35;
 const HIGH_LIGHTNESS_THRESHOLD = 0.5;
-const HIGH_LIGHTNESS_INTENSITY_SCALE = 0.2;
+const HIGH_LIGHTNESS_INTENSITY_SCALE = 0.15;
+const LOW_LIGHTNESS_THRESHOLD = 0.7;
+const LOW_LIGHTNESS_INTENSITY_SCALE = 1.25;
 const BASE_TRAIL_BRIGHTNESS = 1.15;
 const HEAD_POINT_RELATIVE_SCALE = 1.1;
 const GLOBAL_POINT_SCALE = 1.25;
@@ -212,7 +215,7 @@ const SPAGHETTI_FIREWORK_CHANCE = 0.25;
 const SPAGHETTI_CURVE_MULTIPLIER = 1.4;
 const SPAGHETTI_VARIANCE_RANGE = [1.15, 1.8];
 const SPAGHETTI_TRAIL_MULTIPLIER = 1.6;
-const SPAGHETTI_LIFE_MULTIPLIER = 0.03;
+const SPAGHETTI_LIFE_MULTIPLIER = 0.0165;
 const SPAGHETTI_TRAIL_GROWTH_BOOST = 0.6;
 const SPAGHETTI_SWIRL_MULTIPLIER = 1.0;
 const SPAGHETTI_CURL_NOISE_STRENGTH_MULTIPLIER = 20;
@@ -2294,8 +2297,11 @@ class Firework {
         COLOR_LIGHTNESS_RANGE[1]
       );
       const color = hslColor(hue, saturation, lightness);
+      color.multiplyScalar(COLOR_GLOBAL_INTENSITY_SCALE);
       if (lightness >= HIGH_LIGHTNESS_THRESHOLD) {
         color.multiplyScalar(HIGH_LIGHTNESS_INTENSITY_SCALE);
+      } else if (lightness <= LOW_LIGHTNESS_THRESHOLD) {
+        color.multiplyScalar(LOW_LIGHTNESS_INTENSITY_SCALE);
       }
 
       this.colors[idx] = color.r;
