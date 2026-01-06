@@ -35,7 +35,7 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   color: rgba(255, 64, 64, 0.95);
-  font-size: 26px;
+  font-size: 17px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   z-index: 2;

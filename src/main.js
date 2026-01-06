@@ -2,8 +2,8 @@ import * as THREE from "three";
 import "./style.css";
 
 const canvas = document.querySelector("#canvas");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+renderer.setPixelRatio(1);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000, 1);
 
@@ -92,11 +92,14 @@ const clock = new THREE.Clock();
 const gravity = new THREE.Vector3(0, -96, 0);
 let elapsedTime = 0;
 let lastClickSignature = "";
+let firstClick = true;
 
 const fireworks = [];
+const rockets = [];
 const flashes = [];
 const detonationQueue = [];
 const BLAST_SCALE = 33.777331;
+const BLAST_COUNT_SCALE = 0.85;
 const TRAIL_SCALE = 6.5;
 const GLOBAL_LIFE_SCALE = 1.35;
 const SMALL_BLAST_CHANCE = 0.8;
@@ -106,18 +109,33 @@ const EXTRA_SCALE_CHANCE = 0.3;
 const SPHERICAL_TRAIL_CHANCE = 0.9;
 const SPHERICAL_TRAIL_MULTIPLIER = 3.6;
 const SPHERICAL_TRAIL_WIDTH_MULTIPLIER = 1.4;
-const DOT_TRAIL_CHANCE = 0.35;
+const DOT_TRAIL_CHANCE = 0.175;
 const DOT_TRAIL_MULTIPLIER = 2.6;
 const DOT_TRAIL_DOT_SCALE = 1.2;
 const DOT_PARTICLE_SCALE = 1.1;
 const DOT_TRAIL_SAMPLES = [5, 9];
 const NO_TRAIL_CHANCE = 0.25;
-const TRAIL_SAMPLE_SCALE = 0.26830966025390625;
+const TRAIL_SAMPLE_SCALE = 1.0;
 const MULTI_CLICK_CHANCE = 0;
 const MULTI_CLICK_COUNT = [2, 4];
 const MULTI_CLICK_DELAY = [0.05, 0.18];
 const MULTI_CLICK_SPREAD = [0, 140];
-const MULTI_BLAST_CHANCE = 0.3;
+const ROCKET_LAUNCH_CHANCE = 0.25;
+const ROCKET_FLIGHT_TIME = [0.6, 0.9];
+const ROCKET_HEIGHT_RANGE = [220, 380];
+const ROCKET_DRIFT_RANGE = [-18, 18];
+const ROCKET_POINT_SIZE = 2.4;
+const ROCKET_POINT_SIZE_RANGE = [0.7, 1.4];
+const ROCKET_SIZE_MULTIPLIER = 3;
+const ROCKET_SPEED_SCALE_RANGE = [0.85, 1.2];
+const ROCKET_BRIGHTNESS = 1.6;
+const ROCKET_HUE_JITTER = 0.08;
+const ROCKET_TRAIL_SAMPLES = [18, 28];
+const ROCKET_TRAIL_SIZE_SCALE = [0.45, 0.65];
+const ROCKET_TRAIL_OPACITY = [0.35, 0.85];
+const ROCKET_TRAIL_BRIGHTNESS = [1.05, 1.45];
+const ROCKET_TRAIL_FADE_POWER = 1.4;
+const MULTI_BLAST_CHANCE = 0.65;
 const MULTI_BLAST_COUNT = [2, 4];
 const MULTI_BLAST_DELAY = [0.05, 0.18];
 const MULTI_BLAST_SPREAD = [30, 120];
@@ -137,13 +155,19 @@ const FERRARI_RED_CHANCE = 0.1;
 const FERRARI_RED_HUE = 0.01;
 const FERRARI_RED_HUE_VARIANCE = 0.02;
 const CROSS_EXTRA_ROTATION_COUNT = 2;
+const FIRST_CLICK_COUNT_MULTIPLIER = 1.35;
+const FIRST_CLICK_RADIUS_MULTIPLIER = 1.25;
+const FIRST_CLICK_TRAIL_MULTIPLIER = 1.6;
+const FIRST_CLICK_LIFE_MULTIPLIER = 1.4;
+const FIRST_CLICK_MIN_TRAIL_SAMPLES = 18;
+const FIRST_CLICK_TRAIL_BRIGHTNESS = 1.4;
 const COLOR_SATURATION_RANGE = [0.98, 1];
 const COLOR_LIGHTNESS_RANGE = [0.62, 0.72];
 const COLOR_GLOBAL_INTENSITY_SCALE = 1.35;
 const HIGH_LIGHTNESS_THRESHOLD = 0.5;
 const HIGH_LIGHTNESS_INTENSITY_SCALE = 0.15;
 const LOW_LIGHTNESS_THRESHOLD = 0.7;
-const LOW_LIGHTNESS_INTENSITY_SCALE = 1.25;
+const LOW_LIGHTNESS_INTENSITY_SCALE = 1.7;
 const BASE_TRAIL_BRIGHTNESS = 1.15;
 const HEAD_POINT_RELATIVE_SCALE = 1.1;
 const GLOBAL_POINT_SCALE = 1.25;
@@ -211,7 +235,7 @@ const SPAGHETTI_TO_CROSS_CHANCE = 0.4;
 const CURLY_REPLACEMENT_CHANCE = 0.4;
 const CURLY_REPLACEMENT_STRAIGHT_CHANCE = 0.5;
 const CURLY_REPLACEMENT_TRAJECTORY_BOOST = 0.2;
-const SPAGHETTI_FIREWORK_CHANCE = 0.25;
+const SPAGHETTI_FIREWORK_CHANCE = 0.6;
 const SPAGHETTI_CURVE_MULTIPLIER = 1.4;
 const SPAGHETTI_VARIANCE_RANGE = [1.15, 1.8];
 const SPAGHETTI_TRAIL_MULTIPLIER = 1.6;
@@ -224,12 +248,13 @@ const SPAGHETTI_CURL_NOISE_SPEED_MULTIPLIER = 1.35;
 const SPAGHETTI_TWIST_MULTIPLIER = 1.04;
 const SPAGHETTI_Y_AXIS_CHANCE = 0.55;
 const SPAGHETTI_Y_AXIS_MULTIPLIER = 2.4;
-const SPAGHETTI_TRAIL_SAMPLE_MULTIPLIER = 4;
+const SPAGHETTI_TRAIL_SAMPLE_MULTIPLIER = 4.6;
 const SPAGHETTI_DROOP_CHANCE = 0.85;
 const SPAGHETTI_DROOP_TRAIL_MULTIPLIER = 1.6;
 const SPAGHETTI_DROOP_GRAVITY_SCALE_MULTIPLIER = 1.35;
 const SPAGHETTI_DROOP_GRAVITY_RAMP_BOOST = 0.5;
 const SPAGHETTI_DROOP_DRAG_BOOST = 0.03;
+const SPAGHETTI_SIZE_MULTIPLIER = 0.392;
 const SNOWFLAKE_TRAJECTORY_CHANCE = 0.1;
 const SNOWFLAKE_SWAY_STRENGTH = [6, 14];
 const SNOWFLAKE_SWAY_SPEED = [1.2, 2.4];
@@ -244,7 +269,7 @@ const TRAJECTORY_VARIANTS = [
   { name: "corkscrew", strength: [6, 12], speed: [6, 10] },
   { name: "flutter", strength: [4, 10], speed: [8, 14] },
 ];
-const CURL_NOISE_CHANCE = 0.15;
+const CURL_NOISE_CHANCE = 0.1875;
 const CURL_NOISE_STRENGTH = [20, 36];
 const CURL_NOISE_SCALE = [0.006, 0.012];
 const CURL_NOISE_SPEED = [0.8, 1.6];
@@ -292,8 +317,8 @@ const CHAOS_SCALE_RANGE = [0.8, 1.25];
 const CHAOS_MIRROR_CHANCE = 0.3;
 const NON_SPHERICAL_CHAOS_CHANCE = 0.3;
 const CROSS_WEIGHT = 3;
-const SPHERICAL_BIAS = 0.85;
-const SPHERICAL_EXTRA_LONG_TRAIL_CHANCE = 0.7;
+const SPHERICAL_BIAS = 0.8;
+const SPHERICAL_EXTRA_LONG_TRAIL_CHANCE = 0.8;
 const SPHERICAL_EXTRA_LONG_TRAIL_MULTIPLIER = 75;
 const PURE_HUES = [0, 1 / 12, 1 / 6, 1 / 3, 1 / 2, 2 / 3, 5 / 6, 11 / 12];
 const STRONG_HUES = [0, 1 / 12, 1 / 6, 0.5, 7 / 12, 2 / 3];
@@ -339,6 +364,7 @@ const FLASH_OPACITY_MAX = 32;
 const FLASH_COLOR_SATURATION = [0.9, 1];
 const FLASH_COLOR_LIGHTNESS = [0.78, 0.92];
 const FLASH_COLOR_VARIANCE = 0.08;
+const FLASH_SPHERICAL_BRIGHTNESS_BOOST = 1.65;
 const FLASH_BURST_COUNT = [2, 4];
 const FLASH_BURST_OFFSET = [4, 12];
 const FLASH_BURST_SIZE_SCALE = [0.95, 2.0];
@@ -2110,6 +2136,151 @@ class Flash {
   }
 }
 
+class Rocket {
+  constructor(origin, options) {
+    this.position = origin.clone();
+    this.velocity = options.velocity.clone();
+    this.life = options.life;
+    this.targetY = options.targetY;
+    this.profile = options.profile;
+    this.hue = options.hue;
+    this.rocketHue = options.rocketHue;
+    this.size = options.size;
+    this.clickDroop = options.clickDroop;
+    this.clickCurly = options.clickCurly;
+    this.forceShowcase = options.forceShowcase;
+    this.forceStraight = options.forceStraight;
+    this.trailSamples = options.trailSamples;
+    this.trailOpacity = options.trailOpacity;
+    this.trailSizeScale = options.trailSizeScale;
+    this.trailBrightness = options.trailBrightness;
+    this.trailFadePower = options.trailFadePower;
+    this.trailHistoryIndex = 0;
+
+    const color = hslColor(this.rocketHue, rand(0.9, 1), rand(0.55, 0.75));
+    color.multiplyScalar(ROCKET_BRIGHTNESS);
+    this.baseColor = color;
+
+    this.positions = new Float32Array([
+      this.position.x,
+      this.position.y,
+      this.position.z,
+    ]);
+    this.colors = new Float32Array([color.r, color.g, color.b]);
+    this.trailPositions = new Float32Array(this.trailSamples * 3);
+    this.trailColors = new Float32Array(this.trailSamples * 3);
+
+    this.geometry = new THREE.BufferGeometry();
+    this.geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(this.positions, 3)
+    );
+    this.geometry.setAttribute(
+      "color",
+      new THREE.BufferAttribute(this.colors, 3)
+    );
+
+    this.material = new THREE.PointsMaterial({
+      size: this.size * GLOBAL_POINT_SCALE,
+      vertexColors: true,
+      map: circleTexture,
+      alphaTest: 0.35,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    this.points = new THREE.Points(this.geometry, this.material);
+
+    for (let s = 0; s < this.trailSamples; s += 1) {
+      const tIdx = s * 3;
+      this.trailPositions[tIdx] = this.position.x;
+      this.trailPositions[tIdx + 1] = this.position.y;
+      this.trailPositions[tIdx + 2] = this.position.z;
+      this.trailColors[tIdx] = this.baseColor.r * this.trailBrightness;
+      this.trailColors[tIdx + 1] = this.baseColor.g * this.trailBrightness;
+      this.trailColors[tIdx + 2] = this.baseColor.b * this.trailBrightness;
+    }
+
+    this.trailGeometry = new THREE.BufferGeometry();
+    this.trailGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(this.trailPositions, 3)
+    );
+    this.trailGeometry.setAttribute(
+      "color",
+      new THREE.BufferAttribute(this.trailColors, 3)
+    );
+
+    this.trailMaterial = new THREE.PointsMaterial({
+      size: this.size * this.trailSizeScale * GLOBAL_POINT_SCALE,
+      vertexColors: true,
+      map: circleTexture,
+      alphaTest: 0.35,
+      transparent: true,
+      opacity: this.trailOpacity,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    this.trail = new THREE.Points(this.trailGeometry, this.trailMaterial);
+  }
+
+  update(delta) {
+    this.life -= delta;
+    this.position.addScaledVector(this.velocity, delta);
+    this.positions[0] = this.position.x;
+    this.positions[1] = this.position.y;
+    this.positions[2] = this.position.z;
+    this.geometry.attributes.position.needsUpdate = true;
+
+    this.trailHistoryIndex = (this.trailHistoryIndex + 1) % this.trailSamples;
+    const headIdx = this.trailHistoryIndex * 3;
+    this.trailPositions[headIdx] = this.position.x;
+    this.trailPositions[headIdx + 1] = this.position.y;
+    this.trailPositions[headIdx + 2] = this.position.z;
+
+    const denom = this.trailSamples > 1 ? this.trailSamples - 1 : 1;
+    for (let s = 0; s < this.trailSamples; s += 1) {
+      const order = (this.trailHistoryIndex - s + this.trailSamples) % this.trailSamples;
+      const tIdx = order * 3;
+      const falloff = Math.pow(1 - s / denom, this.trailFadePower);
+      const fade = this.trailOpacity * this.trailBrightness * falloff;
+      this.trailColors[tIdx] = this.baseColor.r * fade;
+      this.trailColors[tIdx + 1] = this.baseColor.g * fade;
+      this.trailColors[tIdx + 2] = this.baseColor.b * fade;
+    }
+    this.trailGeometry.attributes.position.needsUpdate = true;
+    this.trailGeometry.attributes.color.needsUpdate = true;
+
+    if (this.life <= 0 || this.position.y >= this.targetY) {
+      const explosionPosition = clampToView(this.position);
+      spawnFlash(explosionPosition, this.hue, { spherical: true });
+      explodeAt(
+        explosionPosition,
+        this.profile,
+        this.hue,
+        true,
+        this.clickDroop,
+        this.clickCurly,
+        this.forceStraight,
+        this.forceShowcase
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  dispose() {
+    this.geometry.dispose();
+    this.material.dispose();
+    this.trailGeometry.dispose();
+    this.trailMaterial.dispose();
+  }
+}
+
 class Firework {
   constructor(origin, options) {
     this.count = options.count;
@@ -2599,7 +2770,8 @@ function buildExplosionOptions(
   hueBase,
   clickDroop = false,
   clickCurly = false,
-  forceStraight = false
+  forceStraight = false,
+  forceShowcase = false
 ) {
   const scale = profile.scale ?? 1;
   let localForceStraight = forceStraight;
@@ -2677,7 +2849,7 @@ function buildExplosionOptions(
   const trajectoryTrail = bendTrails || cascadeTrail || droopTrail;
   const dotTrailChance = profile.dotTrailChance ?? DOT_TRAIL_CHANCE;
   const dotTrail = trajectoryTrail || Math.random() < dotTrailChance;
-  const noTrail = Math.random() < NO_TRAIL_CHANCE;
+  const noTrail = forceShowcase ? false : Math.random() < NO_TRAIL_CHANCE;
   const dotTrailSamples = scaleTrailSamples(
     profile.dotTrailSamples ?? DOT_TRAIL_SAMPLES
   );
@@ -2704,6 +2876,9 @@ function buildExplosionOptions(
       2,
       Math.round(trailSamples * SPAGHETTI_TRAIL_SAMPLE_MULTIPLIER)
     );
+  }
+  if (forceShowcase) {
+    trailSamples = Math.max(trailSamples, FIRST_CLICK_MIN_TRAIL_SAMPLES);
   }
   const trailPointScale = dotTrail
     ? DOT_TRAIL_DOT_SCALE *
@@ -2902,6 +3077,9 @@ function buildExplosionOptions(
     : CHAOS_SCALE_RANGE;
   const trailBrightness =
     (droopTrail ? DROOP_TRAIL_BRIGHTNESS : 1) * BASE_TRAIL_BRIGHTNESS;
+  const showcaseTrailBrightness = forceShowcase
+    ? trailBrightness * FIRST_CLICK_TRAIL_BRIGHTNESS
+    : trailBrightness;
   const snowflake = Math.random() < SNOWFLAKE_TRAJECTORY_CHANCE;
   const baseDrag = range(profile.drag);
   const dragBoost =
@@ -2914,7 +3092,12 @@ function buildExplosionOptions(
 
   return {
     pattern: profile.pattern,
-    count: Math.round(randInt(profile.count[0], profile.count[1]) * countBoost),
+    count: Math.round(
+      randInt(profile.count[0], profile.count[1]) *
+        countBoost *
+        BLAST_COUNT_SCALE *
+        (forceShowcase ? FIRST_CLICK_COUNT_MULTIPLIER : 1)
+    ),
     radius:
       range(profile.radius) *
       BLAST_SCALE *
@@ -2923,8 +3106,15 @@ function buildExplosionOptions(
       (smallBlast ? SMALL_BLAST_SCALE : 1) *
       bigRadiusBoost *
       radiusBoost *
-      (profile.spherical ? SPHERE_SIZE_MULTIPLIER : 1),
-    life: range(profile.life) * lifeScale * GLOBAL_LIFE_SCALE * sphereLifeBoost,
+      (profile.spherical ? SPHERE_SIZE_MULTIPLIER : 1) *
+      (forceShowcase ? FIRST_CLICK_RADIUS_MULTIPLIER : 1) *
+      (spaghetti ? SPAGHETTI_SIZE_MULTIPLIER : 1),
+    life:
+      range(profile.life) *
+      lifeScale *
+      GLOBAL_LIFE_SCALE *
+      sphereLifeBoost *
+      (forceShowcase ? FIRST_CLICK_LIFE_MULTIPLIER : 1),
     trailStretch:
       range(profile.trailStretch) *
       TRAIL_SCALE *
@@ -2948,7 +3138,8 @@ function buildExplosionOptions(
       spaghettiDroopTrail *
       clickDroopTrail *
       sphericalDroopTrailBoost *
-      curlyTrailBoost,
+      curlyTrailBoost *
+      (forceShowcase ? FIRST_CLICK_TRAIL_MULTIPLIER : 1),
     drag,
     drift: snowflake
       ? randomVec3({
@@ -2995,7 +3186,7 @@ function buildExplosionOptions(
     trailSamples,
     trailPointScale,
     trailWidthScale,
-    trailBrightness,
+    trailBrightness: showcaseTrailBrightness,
     trailFadePower: droopExtra
       ? DROOP_EXTRA_FADE_POWER
       : softFade
@@ -3062,12 +3253,15 @@ function flashColorFromHue(hue) {
   );
 }
 
-function spawnFlash(position, hue) {
+function spawnFlash(position, hue, options = {}) {
   if (Math.random() > FLASH_CHANCE) {
     return;
   }
 
-  const mainFlash = new Flash(position, flashColorFromHue(hue));
+  const sphericalBoost = options.spherical ? FLASH_SPHERICAL_BRIGHTNESS_BOOST : 1;
+  const mainFlash = new Flash(position, flashColorFromHue(hue), {
+    opacityScale: sphericalBoost,
+  });
   flashes.push(mainFlash);
   scene.add(mainFlash.sprite);
 
@@ -3082,7 +3276,7 @@ function spawnFlash(position, hue) {
     );
     const burstFlash = new Flash(position, flashColorFromHue(hue), {
       sizeScale: range(FLASH_BURST_SIZE_SCALE),
-      opacityScale: range(FLASH_BURST_OPACITY_SCALE),
+      opacityScale: range(FLASH_BURST_OPACITY_SCALE) * sphericalBoost,
       lifeScale: range(FLASH_BURST_LIFE_SCALE),
       offset,
     });
@@ -3161,12 +3355,20 @@ function explodeAt(
   allowMultiBlast = true,
   clickDroop = false,
   clickCurly = false,
-  forceStraight = false
+  forceStraight = false,
+  forceShowcase = false
 ) {
   const chosen = profile ?? pick(explosionProfiles);
   const firework = new Firework(
     position,
-    buildExplosionOptions(chosen, hueBase, clickDroop, clickCurly, forceStraight)
+    buildExplosionOptions(
+      chosen,
+      hueBase,
+      clickDroop,
+      clickCurly,
+      forceStraight,
+      forceShowcase
+    )
   );
 
   fireworks.push(firework);
@@ -3205,12 +3407,7 @@ function clampToView(position) {
   );
 }
 
-function scheduleSingleDetonation(
-  origin,
-  baseHue,
-  clickDroop = false,
-  clickCurly = false
-) {
+function chooseProfile(forceSpherical = false) {
   const excluded = new Set(lastClickSignature ? lastClickSignature.split("|") : []);
   const sphericalPool = explosionProfiles.filter(
     (profile) => profile.spherical && !excluded.has(profile.pattern)
@@ -3225,9 +3422,10 @@ function scheduleSingleDetonation(
     cross: CROSS_WEIGHT,
   });
   let profile = null;
-  let forceStraight = false;
 
-  if (Math.random() < SPHERICAL_BIAS && sphericalPool.length) {
+  if (forceSpherical && sphericalPool.length) {
+    profile = pick(sphericalPool);
+  } else if (Math.random() < SPHERICAL_BIAS && sphericalPool.length) {
     profile = pick(sphericalPool);
   } else if (weightedNonSphericalPool.length) {
     profile = pick(weightedNonSphericalPool);
@@ -3236,6 +3434,22 @@ function scheduleSingleDetonation(
   } else {
     profile = pick(explosionProfiles);
   }
+
+  lastClickSignature = profile.pattern;
+  return profile;
+}
+
+function scheduleSingleDetonation(
+  origin,
+  baseHue,
+  clickDroop = false,
+  clickCurly = false,
+  forceSpherical = false,
+  forceShowcase = false
+) {
+  let profile = chooseProfile(forceSpherical);
+  let forceStraight = false;
+
   if (clickCurly && Math.random() < SPAGHETTI_TO_CROSS_CHANCE) {
     const crossPool = explosionProfiles.filter(
       (candidate) => candidate.pattern === "cross"
@@ -3244,10 +3458,10 @@ function scheduleSingleDetonation(
       profile = pick(crossPool);
       clickCurly = false;
       forceStraight = true;
+      lastClickSignature = profile.pattern;
     }
   }
-  lastClickSignature = profile.pattern;
-  spawnFlash(origin, baseHue);
+  spawnFlash(origin, baseHue, { spherical: profile.spherical });
 
   detonationQueue.push({
     time: elapsedTime,
@@ -3256,6 +3470,7 @@ function scheduleSingleDetonation(
     hue: baseHue,
     clickDroop,
     clickCurly,
+    forceShowcase,
     forceStraight,
   });
 }
@@ -3264,7 +3479,54 @@ function scheduleDetonation(origin) {
   const baseHue = pick(PURE_HUES);
   const clickDroop = Math.random() < CLICK_DROOP_CHANCE;
   const clickCurly = Math.random() < CLICK_CURLY_CHANCE;
-  scheduleSingleDetonation(origin, baseHue, clickDroop, clickCurly);
+  const forceSpherical = firstClick;
+  const forceShowcase = firstClick;
+  const launchRocket = !firstClick && Math.random() < ROCKET_LAUNCH_CHANCE;
+  firstClick = false;
+  if (launchRocket) {
+    const profile = chooseProfile(true);
+    const flightTime = range(ROCKET_FLIGHT_TIME);
+    const height = range(ROCKET_HEIGHT_RANGE);
+    const speedScale = range(ROCKET_SPEED_SCALE_RANGE);
+    const rocketHue =
+      (pick(PURE_HUES) + rand(-ROCKET_HUE_JITTER, ROCKET_HUE_JITTER) + 1) % 1;
+    const velocity = new THREE.Vector3(
+      rand(ROCKET_DRIFT_RANGE[0], ROCKET_DRIFT_RANGE[1]),
+      (height / flightTime) * speedScale,
+      rand(ROCKET_DRIFT_RANGE[0], ROCKET_DRIFT_RANGE[1])
+    );
+    const rocket = new Rocket(origin, {
+      velocity,
+      life: flightTime,
+      targetY: origin.y + height,
+      profile,
+      hue: baseHue,
+      rocketHue,
+      size:
+        ROCKET_POINT_SIZE * range(ROCKET_POINT_SIZE_RANGE) * ROCKET_SIZE_MULTIPLIER,
+      trailSamples: randInt(ROCKET_TRAIL_SAMPLES[0], ROCKET_TRAIL_SAMPLES[1]),
+      trailSizeScale: range(ROCKET_TRAIL_SIZE_SCALE),
+      trailOpacity: range(ROCKET_TRAIL_OPACITY),
+      trailBrightness: range(ROCKET_TRAIL_BRIGHTNESS),
+      trailFadePower: ROCKET_TRAIL_FADE_POWER,
+      clickDroop,
+      clickCurly: false,
+      forceShowcase,
+      forceStraight: true,
+    });
+    rockets.push(rocket);
+    scene.add(rocket.points);
+    scene.add(rocket.trail);
+  } else {
+    scheduleSingleDetonation(
+      origin,
+      baseHue,
+      clickDroop,
+      clickCurly,
+      forceSpherical,
+      forceShowcase
+    );
+  }
 }
 
 function onPointerDown(event) {
@@ -3310,7 +3572,8 @@ function animate() {
           item.allowMultiBlast ?? true,
           item.clickDroop ?? false,
           item.clickCurly ?? false,
-          item.forceStraight ?? false
+          item.forceStraight ?? false,
+          item.forceShowcase ?? false
         );
         detonationQueue.splice(i, 1);
       }
@@ -3323,6 +3586,16 @@ function animate() {
       scene.remove(flash.sprite);
       flash.dispose();
       flashes.splice(i, 1);
+    }
+  }
+
+  for (let i = rockets.length - 1; i >= 0; i -= 1) {
+    const rocket = rockets[i];
+    if (!rocket.update(delta)) {
+      scene.remove(rocket.points);
+      scene.remove(rocket.trail);
+      rocket.dispose();
+      rockets.splice(i, 1);
     }
   }
 
