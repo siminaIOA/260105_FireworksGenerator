@@ -15,6 +15,7 @@
 - Lightning-style center flashes blended to spherical bursts only, now a tighter ultra-bright core
 - Non-spherical chaos: flips, rotations, mirroring, and cross emphasis
 - Faint-firework intensity boosting to avoid washed-out bursts
+- Global scale and color intensity tuning for tighter, punchier detonations
 
 ## Getting Started
 1. `npm install`
