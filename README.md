@@ -25,7 +25,7 @@
 - Click on the canvas to detonate a firework at the cursor position
 
 ## Deployment
-Live demo: https://siminaIOA.github.io/260105_FireworksGenerator/gh-pages
+Live demo: https://siminaIOA.github.io/260105_FireworksGenerator/
 
 Build locally with relative asset paths:
 1. `npm install`
