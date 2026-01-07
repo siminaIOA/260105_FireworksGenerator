@@ -4,11 +4,15 @@
 
 ## Features
 - Expanded blast catalog with new shapes and motion styles
+- New explosion types including supernova, warp, prism, sparkburst, and rainburst
 - Strong spherical bias with boosted droops, long trails, and mega droop variants
 - Spaghetti curl trails with curl-noise motion, extra droop, and denser trail sampling
 - Snowflake-style drifting trajectories on a subset of blasts
+- Rocket launches with their own trail, color, and size before detonating into spherical bursts
+- First-click showcase blast that always forces a perfectly spherical, intense firework
+- Sub-burst fireworks: falling head particles spawn mini explosions, including rainbow variants
 - Solid, intense color palette with Ferrari red spherical bursts and limited rainbow use
-- Lightning-style center flashes with colored cores and secondary flash bursts
+- Lightning-style center flashes blended to spherical bursts only
 - Non-spherical chaos: flips, rotations, mirroring, and cross emphasis
 
 ## Getting Started
@@ -28,11 +32,12 @@ Build locally with relative asset paths:
 
 Deploy to GitHub Pages (keeps `main` clean by using a worktree):
 1. `git worktree add ../260101_FireworksGenerator_gh-pages gh-pages`
-2. Copy the build output into the worktree root:
+2. `npm run build -- --base=./`
+3. Copy the build output into the worktree root:
    - Remove old `assets/` + `index.html`
    - Copy `dist/*` from the main repo into the worktree root
    - Add `.nojekyll`
-3. Commit and push from the `gh-pages` worktree:
+4. Commit and push from the `gh-pages` worktree:
    - `git add -A`
    - `git commit -m "Deploy build"`
-   - `git push`
+   - `git push origin gh-pages`

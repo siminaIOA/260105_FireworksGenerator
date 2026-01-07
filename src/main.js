@@ -39,7 +39,7 @@ const circleTexture = (() => {
 })();
 
 const flashTexture = (() => {
-  const size = 64;
+  const size = 128;
   const offscreen = document.createElement("canvas");
   offscreen.width = size;
   offscreen.height = size;
@@ -47,30 +47,26 @@ const flashTexture = (() => {
   const center = size / 2;
 
   ctx.clearRect(0, 0, size, size);
-  ctx.strokeStyle = "rgba(255, 255, 255, 1)";
-  ctx.lineWidth = 2.6;
-  ctx.lineCap = "round";
-  ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
-  ctx.shadowBlur = 10;
-
-  const strokes = [
-    [0, -13, 0, 13],
-    [-11, -5, 11, 5],
-    [-7, 9, 7, -9],
-    [-4, -12, 8, -3],
-    [-10, 2, 10, -2],
-  ];
-
-  strokes.forEach(([x1, y1, x2, y2]) => {
-    ctx.beginPath();
-    ctx.moveTo(center + x1, center + y1);
-    ctx.lineTo(center + x2, center + y2);
-    ctx.stroke();
-  });
+  const gradient = ctx.createRadialGradient(
+    center,
+    center,
+    0,
+    center,
+    center,
+    center
+  );
+  gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+  gradient.addColorStop(0.18, "rgba(255, 255, 255, 1)");
+  gradient.addColorStop(0.45, "rgba(255, 255, 255, 0.92)");
+  gradient.addColorStop(0.75, "rgba(255, 255, 255, 0.35)");
+  gradient.addColorStop(0.9, "rgba(255, 255, 255, 0.12)");
+  gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
 
   const texture = new THREE.CanvasTexture(offscreen);
-  texture.minFilter = THREE.NearestFilter;
-  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
   texture.generateMipmaps = false;
   return texture;
 })();
@@ -91,17 +87,18 @@ camera.position.z = 200;
 const clock = new THREE.Clock();
 const gravity = new THREE.Vector3(0, -96, 0);
 let elapsedTime = 0;
-let lastClickSignature = "";
+const patternHistory = [];
+const hueHistory = [];
 let firstClick = true;
 
 const fireworks = [];
 const rockets = [];
 const flashes = [];
 const detonationQueue = [];
-const BLAST_SCALE = 33.777331;
+const BLAST_SCALE = 16.07800956;
 const BLAST_COUNT_SCALE = 0.85;
-const TRAIL_SCALE = 6.5;
-const GLOBAL_LIFE_SCALE = 1.35;
+const TRAIL_SCALE = 51.7150365615;
+const GLOBAL_LIFE_SCALE = 0.2472575625;
 const SMALL_BLAST_CHANCE = 0.8;
 const SMALL_BLAST_SCALE = 1.0625;
 const EXTRA_SCALE = 1.75;
@@ -127,7 +124,7 @@ const ROCKET_DRIFT_RANGE = [-18, 18];
 const ROCKET_POINT_SIZE = 2.4;
 const ROCKET_POINT_SIZE_RANGE = [0.7, 1.4];
 const ROCKET_SIZE_MULTIPLIER = 3;
-const ROCKET_SPEED_SCALE_RANGE = [0.85, 1.2];
+const ROCKET_SPEED_SCALE_RANGE = [1.221875, 1.725];
 const ROCKET_BRIGHTNESS = 1.6;
 const ROCKET_HUE_JITTER = 0.08;
 const ROCKET_TRAIL_SAMPLES = [18, 28];
@@ -135,6 +132,12 @@ const ROCKET_TRAIL_SIZE_SCALE = [0.45, 0.65];
 const ROCKET_TRAIL_OPACITY = [0.35, 0.85];
 const ROCKET_TRAIL_BRIGHTNESS = [1.05, 1.45];
 const ROCKET_TRAIL_FADE_POWER = 1.4;
+const SUB_BURST_CHANCE = 0.15;
+const SUB_BURST_TRIGGER_RATIO = 0.55;
+const SUB_BURST_PARTICLE_CHANCE = 0.16;
+const SUB_BURST_MAX = 24;
+const SUB_BURST_HUE_VARIANCE = 0.06;
+const RAINBOW_SUB_BURST_PATTERN = "rainburst";
 const MULTI_BLAST_CHANCE = 0.65;
 const MULTI_BLAST_COUNT = [2, 4];
 const MULTI_BLAST_DELAY = [0.05, 0.18];
@@ -146,29 +149,42 @@ const BIG_RADIUS_MULTIPLIER = 1.45;
 const BIG_TRAIL_MULTIPLIER = 3;
 const BIG_PARTICLE_MULTIPLIER = 1;
 const MULTI_HUE_CHANCE = 0.3;
-const HUE_VARIANCE_BOOST = [0.04, 0.12];
-const MAX_HUE_VARIANCE = 0.25;
-const EXTRA_COLOR_VARIANCE_CHANCE = 0.25;
-const EXTRA_COLOR_VARIANCE = [0.02, 0.08];
-const MAX_SINGLE_HUE_VARIANCE = 0.12;
+const HUE_VARIANCE_BOOST = [0.02, 0.06];
+const MAX_HUE_VARIANCE = 0.1;
+const EXTRA_COLOR_VARIANCE_CHANCE = 0.15;
+const EXTRA_COLOR_VARIANCE = [0.01, 0.03];
+const MAX_SINGLE_HUE_VARIANCE = 0.04;
 const FERRARI_RED_CHANCE = 0.1;
 const FERRARI_RED_HUE = 0.01;
 const FERRARI_RED_HUE_VARIANCE = 0.02;
 const CROSS_EXTRA_ROTATION_COUNT = 2;
+const CROSS_INTENSITY_BOOST = 1.8;
+const CROSS_TRAIL_BRIGHTNESS_BOOST = 1.75;
+const WARP_INTENSITY_BOOST = 1.4;
+const WARP_TRAIL_BRIGHTNESS_BOOST = 2.0;
+const SUPERNOVA_INTENSITY_BOOST = 1.6;
+const SUPERNOVA_TRAIL_BRIGHTNESS_BOOST = 1.6;
+const NEW_PATTERN_CHAOS_ROTATIONS = 2;
+const NEW_PATTERN_MIRROR_CHANCE = 0.9;
+const NEW_PATTERN_SCALE_RANGE = [0.75, 1.45];
+const PATTERN_REPEAT_WINDOW = 3;
+const HUE_REPEAT_WINDOW = 3;
+const GLOBAL_SCALE_RANGE = [0.9, 1.15];
 const FIRST_CLICK_COUNT_MULTIPLIER = 1.35;
 const FIRST_CLICK_RADIUS_MULTIPLIER = 1.25;
 const FIRST_CLICK_TRAIL_MULTIPLIER = 1.6;
 const FIRST_CLICK_LIFE_MULTIPLIER = 1.4;
 const FIRST_CLICK_MIN_TRAIL_SAMPLES = 18;
 const FIRST_CLICK_TRAIL_BRIGHTNESS = 1.4;
+const FIRST_CLICK_FORCE_PATTERN = "sphere";
 const COLOR_SATURATION_RANGE = [0.98, 1];
 const COLOR_LIGHTNESS_RANGE = [0.62, 0.72];
-const COLOR_GLOBAL_INTENSITY_SCALE = 1.35;
+const COLOR_GLOBAL_INTENSITY_SCALE = 5.25;
 const HIGH_LIGHTNESS_THRESHOLD = 0.5;
 const HIGH_LIGHTNESS_INTENSITY_SCALE = 0.15;
 const LOW_LIGHTNESS_THRESHOLD = 0.7;
-const LOW_LIGHTNESS_INTENSITY_SCALE = 1.7;
-const BASE_TRAIL_BRIGHTNESS = 1.15;
+const LOW_LIGHTNESS_INTENSITY_SCALE = 12.555;
+const BASE_TRAIL_BRIGHTNESS = 1.4375;
 const HEAD_POINT_RELATIVE_SCALE = 1.1;
 const GLOBAL_POINT_SCALE = 1.25;
 const LONG_TRAIL_CHANCE = 0.4;
@@ -235,20 +251,21 @@ const SPAGHETTI_TO_CROSS_CHANCE = 0.4;
 const CURLY_REPLACEMENT_CHANCE = 0.4;
 const CURLY_REPLACEMENT_STRAIGHT_CHANCE = 0.5;
 const CURLY_REPLACEMENT_TRAJECTORY_BOOST = 0.2;
-const SPAGHETTI_FIREWORK_CHANCE = 0.6;
-const SPAGHETTI_CURVE_MULTIPLIER = 1.4;
+const SPAGHETTI_FIREWORK_CHANCE = 0.75;
+const SPAGHETTI_SPHERICAL_CHANCE = 0.25;
+const SPAGHETTI_CURVE_MULTIPLIER = 1.8;
 const SPAGHETTI_VARIANCE_RANGE = [1.15, 1.8];
-const SPAGHETTI_TRAIL_MULTIPLIER = 1.6;
-const SPAGHETTI_LIFE_MULTIPLIER = 0.0165;
-const SPAGHETTI_TRAIL_GROWTH_BOOST = 0.6;
-const SPAGHETTI_SWIRL_MULTIPLIER = 1.0;
-const SPAGHETTI_CURL_NOISE_STRENGTH_MULTIPLIER = 20;
+const SPAGHETTI_TRAIL_MULTIPLIER = 2.4;
+const SPAGHETTI_LIFE_MULTIPLIER = 0.012;
+const SPAGHETTI_TRAIL_GROWTH_BOOST = 1.2;
+const SPAGHETTI_SWIRL_MULTIPLIER = 1.8;
+const SPAGHETTI_CURL_NOISE_STRENGTH_MULTIPLIER = 26;
 const SPAGHETTI_CURL_NOISE_SCALE_MULTIPLIER = 1.0;
-const SPAGHETTI_CURL_NOISE_SPEED_MULTIPLIER = 1.35;
-const SPAGHETTI_TWIST_MULTIPLIER = 1.04;
-const SPAGHETTI_Y_AXIS_CHANCE = 0.55;
-const SPAGHETTI_Y_AXIS_MULTIPLIER = 2.4;
-const SPAGHETTI_TRAIL_SAMPLE_MULTIPLIER = 4.6;
+const SPAGHETTI_CURL_NOISE_SPEED_MULTIPLIER = 2.2;
+const SPAGHETTI_TWIST_MULTIPLIER = 1.6;
+const SPAGHETTI_Y_AXIS_CHANCE = 0.85;
+const SPAGHETTI_Y_AXIS_MULTIPLIER = 3.4;
+const SPAGHETTI_TRAIL_SAMPLE_MULTIPLIER = 5.5;
 const SPAGHETTI_DROOP_CHANCE = 0.85;
 const SPAGHETTI_DROOP_TRAIL_MULTIPLIER = 1.6;
 const SPAGHETTI_DROOP_GRAVITY_SCALE_MULTIPLIER = 1.35;
@@ -322,6 +339,7 @@ const SPHERICAL_EXTRA_LONG_TRAIL_CHANCE = 0.8;
 const SPHERICAL_EXTRA_LONG_TRAIL_MULTIPLIER = 75;
 const PURE_HUES = [0, 1 / 12, 1 / 6, 1 / 3, 1 / 2, 2 / 3, 5 / 6, 11 / 12];
 const STRONG_HUES = [0, 1 / 12, 1 / 6, 0.5, 7 / 12, 2 / 3];
+const SOLID_HUES = Array.from({ length: 16 }, (_, i) => i / 16);
 const MULTI_HUE_REPLACE_CHANCE = 0.7;
 const SECONDARY_PATTERN = "rosette";
 const SECONDARY_COUNT = [90, 180];
@@ -349,27 +367,39 @@ const SPHERICAL_CURLY_CHANCE = 0.12;
 const SPHERICAL_CURLY_BOOST = 1.7;
 const SPHERICAL_SPIRAL_STRENGTH = [12, 22];
 const SPHERICAL_SPIRAL_SPEED = [4.5, 7.5];
-const FLASH_CHANCE = 0.65;
-const FLASH_LIFE = [0.04, 0.08];
-const FLASH_SIZE = [5.5, 9.5];
-const FLASH_OPACITY = [14, 28];
-const FLASH_DIM_CHANCE = 0.35;
-const FLASH_BRIGHT_CHANCE = 0.2;
-const FLASH_DIM_SCALE = [0.65, 0.9];
-const FLASH_BRIGHT_SCALE = [1.6, 2.3];
-const FLASH_DIM_OPACITY_SCALE = [0.55, 0.8];
-const FLASH_BRIGHT_OPACITY_SCALE = [1.4, 2.1];
+const FLASH_CHANCE = 1.0;
+const FLASH_LIFE = [0.05, 0.1];
+const FLASH_SIZE = [0.54, 0.84];
+const FLASH_OPACITY = [128, 340];
+const FLASH_DIM_CHANCE = 0.25;
+const FLASH_BRIGHT_CHANCE = 0.35;
+const FLASH_DIM_SCALE = [0.7, 0.95];
+const FLASH_BRIGHT_SCALE = [2.4, 3.6];
+const FLASH_DIM_OPACITY_SCALE = [0.65, 0.9];
+const FLASH_BRIGHT_OPACITY_SCALE = [2.1, 3.2];
 const FLASH_OPACITY_MIN = 0.7;
-const FLASH_OPACITY_MAX = 32;
-const FLASH_COLOR_SATURATION = [0.9, 1];
-const FLASH_COLOR_LIGHTNESS = [0.78, 0.92];
-const FLASH_COLOR_VARIANCE = 0.08;
-const FLASH_SPHERICAL_BRIGHTNESS_BOOST = 1.65;
-const FLASH_BURST_COUNT = [2, 4];
-const FLASH_BURST_OFFSET = [4, 12];
-const FLASH_BURST_SIZE_SCALE = [0.95, 2.0];
-const FLASH_BURST_OPACITY_SCALE = [0.6, 1.0];
-const FLASH_BURST_LIFE_SCALE = [0.6, 1.05];
+const FLASH_OPACITY_MAX = 480;
+const FLASH_COLOR_SATURATION = [0.98, 1];
+const FLASH_COLOR_LIGHTNESS = [0.66, 0.78];
+const FLASH_COLOR_VARIANCE = 0.04;
+const FLASH_SPHERICAL_BRIGHTNESS_BOOST = 22.4;
+const FLASH_SPHERICAL_SIZE_BOOST = 3.2;
+const FLASH_SPHERICAL_OUTER_SCALE = 2.4;
+const FLASH_SPHERICAL_OUTER_OPACITY_SCALE = 1.15;
+const FLASH_SPHERICAL_OUTER_LIFE_SCALE = 0.7;
+const FLASH_SPHERICAL_OUTER_LIGHTNESS = [0.6, 0.74];
+const FLASH_FIREBOWL_COUNT = [6, 10];
+const FLASH_FIREBOWL_OFFSET = [0, 0];
+const FLASH_FIREBOWL_SIZE_SCALE = [1.6, 2.6];
+const FLASH_FIREBOWL_OPACITY_SCALE = [1.0875, 1.6675];
+const FLASH_FIREBOWL_LIFE_SCALE = [0.5, 0.9];
+const FLASH_FIREBOWL_LIGHTNESS = [0.6, 0.78];
+const FLASH_FIREBOWL_HUE_SHIFT = [0, 0];
+const FLASH_BURST_COUNT = [4, 7];
+const FLASH_BURST_OFFSET = [0, 0];
+const FLASH_BURST_SIZE_SCALE = [1.2, 2.6];
+const FLASH_BURST_OPACITY_SCALE = [0.9, 1.4];
+const FLASH_BURST_LIFE_SCALE = [0.45, 0.9];
 const explosionProfiles = [
   {
     pattern: "burst",
@@ -1167,6 +1197,87 @@ const explosionProfiles = [
     gravityRamp: [0.9, 1.3],
   },
   {
+    pattern: "sparkburst",
+    count: [24, 48],
+    radius: [35, 70],
+    life: [0.7, 1.2],
+    trailStretch: [1.4, 2.4],
+    drag: [0.94, 0.98],
+    drift: { x: [-1.2, 1.2], y: [-0.8, 0.8], z: [-1.2, 1.2] },
+    pointSize: [1.0, 2.0],
+    gravityScale: [1.0, 1.25],
+    hueVariance: 0.08,
+    trailBoost: 1.4,
+    curveStrength: [8, 14],
+    curveDecay: [0.5, 0.9],
+    gravityRamp: [1.0, 1.3],
+  },
+  {
+    pattern: "rainburst",
+    count: [46, 90],
+    radius: [60, 120],
+    life: [0.9, 1.6],
+    trailStretch: [2.0, 3.6],
+    drag: [0.94, 0.985],
+    drift: { x: [-1.8, 1.8], y: [-1.2, 1.2], z: [-1.8, 1.8] },
+    pointSize: [1.2, 2.6],
+    gravityScale: [1.05, 1.35],
+    hueVariance: 0.18,
+    trailBoost: 1.9,
+    curveStrength: [12, 20],
+    curveDecay: [0.4, 0.85],
+    gravityRamp: [1.05, 1.6],
+  },
+  {
+    pattern: "supernova",
+    count: [200, 420],
+    radius: [120, 260],
+    life: [1.4, 2.4],
+    trailStretch: [3.2, 6.2],
+    drag: [0.95, 0.985],
+    drift: { x: [-2.2, 2.2], y: [-1.4, 1.4], z: [-2.2, 2.2] },
+    pointSize: [1.4, 2.8],
+    gravityScale: [0.9, 1.2],
+    hueVariance: 0.1,
+    trailBoost: 3.8,
+    curveStrength: [20, 36],
+    curveDecay: [0.5, 1.0],
+    gravityRamp: [1.0, 1.5],
+    spherical: true,
+  },
+  {
+    pattern: "prism",
+    count: [160, 320],
+    radius: [110, 240],
+    life: [1.5, 2.6],
+    trailStretch: [2.8, 5.2],
+    drag: [0.95, 0.985],
+    drift: { x: [-1.8, 1.8], y: [-1.2, 1.2], z: [-1.8, 1.8] },
+    pointSize: [1.3, 2.6],
+    gravityScale: [0.9, 1.2],
+    hueVariance: 0.08,
+    trailBoost: 2.0,
+    curveStrength: [12, 22],
+    curveDecay: [0.6, 1.1],
+    gravityRamp: [0.9, 1.3],
+  },
+  {
+    pattern: "warp",
+    count: [180, 360],
+    radius: [120, 260],
+    life: [1.5, 2.7],
+    trailStretch: [3.0, 6.0],
+    drag: [0.95, 0.985],
+    drift: { x: [-2.0, 2.0], y: [-1.4, 1.4], z: [-2.0, 2.0] },
+    pointSize: [1.3, 2.6],
+    gravityScale: [0.9, 1.25],
+    hueVariance: 0.1,
+    trailBoost: 2.8,
+    curveStrength: [16, 30],
+    curveDecay: [0.5, 1.0],
+    gravityRamp: [1.0, 1.5],
+  },
+  {
     pattern: "arcflower",
     count: [160, 320],
     radius: [120, 260],
@@ -1261,6 +1372,19 @@ function randInt(min, max) {
 
 function pick(list) {
   return list[Math.floor(Math.random() * list.length)];
+}
+
+function remember(list, value, limit) {
+  list.unshift(value);
+  if (list.length > limit) {
+    list.length = limit;
+  }
+}
+
+function pickAvoidRecent(list, recent, limit) {
+  const excluded = new Set(recent.slice(0, limit));
+  const filtered = list.filter((value) => !excluded.has(value));
+  return filtered.length ? pick(filtered) : pick(list);
 }
 
 function range(pair) {
@@ -1590,6 +1714,56 @@ function directionFor(pattern, i, count, data) {
       Math.cos(yaw) * Math.cos(pitch),
       Math.sin(pitch),
       Math.sin(yaw) * Math.cos(pitch)
+    ).normalize();
+  }
+
+  if (pattern === "sparkburst") {
+    const dir = randomDirection();
+    dir.y = dir.y * 0.5 + 0.35;
+    return dir.normalize();
+  }
+
+  if (pattern === "rainburst") {
+    const dir = randomDirection();
+    dir.y = dir.y * 0.35 + 0.55;
+    const flare = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(0.18);
+    return dir.add(flare).normalize();
+  }
+
+  if (pattern === "supernova") {
+    const t = i / count;
+    const angle = t * Math.PI * 2;
+    const spike = 0.45 + 0.55 * Math.abs(Math.sin(angle * 8));
+    const lift = 0.2 + 0.5 * spike;
+    return new THREE.Vector3(
+      Math.cos(angle) * spike,
+      lift,
+      Math.sin(angle) * spike
+    ).normalize();
+  }
+
+  if (pattern === "prism") {
+    const sides = 6;
+    const step = (Math.PI * 2) / sides;
+    const angle = Math.round((i / count) * sides) * step + rand(-0.12, 0.12);
+    const up = rand(0.25, 0.65);
+    const out = Math.sqrt(1 - up * up);
+    return new THREE.Vector3(
+      Math.cos(angle) * out,
+      up,
+      Math.sin(angle) * out
+    ).normalize();
+  }
+
+  if (pattern === "warp") {
+    const t = i / count;
+    const angle = t * Math.PI * 10;
+    const radius = 0.35 + 0.45 * Math.sin(t * Math.PI * 2);
+    const y = 0.15 + 0.75 * t;
+    return new THREE.Vector3(
+      Math.cos(angle) * radius,
+      y,
+      Math.sin(angle) * radius
     ).normalize();
   }
 
@@ -2107,7 +2281,6 @@ class Flash {
       opacity: this.baseOpacity,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      alphaTest: 0.5,
     });
     this.material.rotation = rand(0, Math.PI * 2);
 
@@ -2256,7 +2429,7 @@ class Rocket {
 
     if (this.life <= 0 || this.position.y >= this.targetY) {
       const explosionPosition = clampToView(this.position);
-      spawnFlash(explosionPosition, this.hue, { spherical: true });
+      spawnFlash(explosionPosition, this.hue, { spherical: true, direct: false });
       explodeAt(
         explosionPosition,
         this.profile,
@@ -2321,6 +2494,10 @@ class Firework {
     this.curlNoiseOffset = null;
     this.curlNoiseTwist = options.curlNoiseTwist ?? 1;
     this.curlNoiseYAxis = options.curlNoiseYAxis ?? 1;
+    this.subBurst = options.subBurst ?? false;
+    this.subBurstProfile = options.subBurstProfile ?? null;
+    this.subBurstHue = options.subBurstHue ?? options.hue;
+    this.subBurstTriggered = false;
     this.directionRotation = options.directionRotation ?? null;
     this.directionMirror = options.directionMirror ?? null;
     this.directionScale = options.directionScale ?? null;
@@ -2475,13 +2652,18 @@ class Firework {
         color.multiplyScalar(LOW_LIGHTNESS_INTENSITY_SCALE);
       }
 
-      this.colors[idx] = color.r;
-      this.colors[idx + 1] = color.g;
-      this.colors[idx + 2] = color.b;
+    const crossBoost = this.pattern === "cross" ? CROSS_INTENSITY_BOOST : 1;
+    const warpBoost = this.pattern === "warp" ? WARP_INTENSITY_BOOST : 1;
+    const supernovaBoost =
+      this.pattern === "supernova" ? SUPERNOVA_INTENSITY_BOOST : 1;
+    const patternBoost = crossBoost * warpBoost * supernovaBoost;
+    this.colors[idx] = color.r * patternBoost;
+    this.colors[idx + 1] = color.g * patternBoost;
+    this.colors[idx + 2] = color.b * patternBoost;
 
-      this.baseColors[idx] = color.r;
-      this.baseColors[idx + 1] = color.g;
-      this.baseColors[idx + 2] = color.b;
+    this.baseColors[idx] = color.r * patternBoost;
+    this.baseColors[idx + 1] = color.g * patternBoost;
+    this.baseColors[idx + 2] = color.b * patternBoost;
 
       const trailOffset = i * this.trailSamples * 3;
       for (let s = 0; s < this.trailSamples; s += 1) {
@@ -2754,6 +2936,53 @@ class Firework {
     this.trailGeometry.attributes.position.needsUpdate = true;
     this.trailGeometry.attributes.color.needsUpdate = true;
 
+    if (this.subBurst && !this.subBurstTriggered) {
+      let spawned = 0;
+      let eligible = [];
+      for (let i = 0; i < this.count; i += 1) {
+        const idx = i * 3;
+        const lifeRatio = Math.max(this.life[i] / this.lifeMax[i], 0);
+        const vy = this.velocities[idx + 1];
+        if (lifeRatio > SUB_BURST_TRIGGER_RATIO || vy >= 0) {
+          continue;
+        }
+        eligible.push(i);
+        if (Math.random() > SUB_BURST_PARTICLE_CHANCE) {
+          continue;
+        }
+        const pos = new THREE.Vector3(
+          this.positions[idx],
+          this.positions[idx + 1],
+          this.positions[idx + 2]
+        );
+        const hue =
+          (this.subBurstHue + rand(-SUB_BURST_HUE_VARIANCE, SUB_BURST_HUE_VARIANCE) + 1) %
+          1;
+        explodeAt(pos, this.subBurstProfile, hue, false, false, false, false, false);
+        spawned += 1;
+        if (spawned >= SUB_BURST_MAX) {
+          break;
+        }
+      }
+      if (spawned === 0 && eligible.length) {
+        const pickIndex = pick(eligible);
+        const idx = pickIndex * 3;
+        const pos = new THREE.Vector3(
+          this.positions[idx],
+          this.positions[idx + 1],
+          this.positions[idx + 2]
+        );
+        const hue =
+          (this.subBurstHue + rand(-SUB_BURST_HUE_VARIANCE, SUB_BURST_HUE_VARIANCE) + 1) %
+          1;
+        explodeAt(pos, this.subBurstProfile, hue, false, false, false, false, false);
+        spawned = 1;
+      }
+      if (spawned > 0) {
+        this.subBurstTriggered = true;
+      }
+    }
+
     return alive > 0;
   }
 
@@ -2776,7 +3005,11 @@ function buildExplosionOptions(
   const scale = profile.scale ?? 1;
   let localForceStraight = forceStraight;
   let baseHue = hueBase ?? Math.random();
-  const spaghetti = !localForceStraight && Math.random() < SPAGHETTI_FIREWORK_CHANCE;
+  const spaghetti =
+    !forceShowcase &&
+    !localForceStraight &&
+    (Math.random() < SPAGHETTI_FIREWORK_CHANCE ||
+      (profile.spherical && Math.random() < SPAGHETTI_SPHERICAL_CHANCE));
   const spaghettiVariance = spaghetti ? range(SPAGHETTI_VARIANCE_RANGE) : 1;
   let baseVariance = profile.hueVariance ?? 0.1;
   const nonSpherical = !profile.spherical;
@@ -3066,9 +3299,27 @@ function buildExplosionOptions(
       }
     }
   }
-  const directionScale = nonSpherical
-    ? randomScaleVector(NON_SPHERICAL_SCALE_RANGE)
-    : null;
+  if (profile.pattern === "supernova" || profile.pattern === "warp" || profile.pattern === "prism") {
+    for (let i = 0; i < NEW_PATTERN_CHAOS_ROTATIONS; i += 1) {
+      directionRotation.multiply(randomRotationQuaternion());
+    }
+    directionMirror.multiply(randomMirrorVector(NEW_PATTERN_MIRROR_CHANCE));
+  }
+  let directionScale = randomScaleVector(GLOBAL_SCALE_RANGE);
+  if (nonSpherical) {
+    directionScale.multiply(randomScaleVector(NON_SPHERICAL_SCALE_RANGE));
+  }
+  if (profile.pattern === "supernova" || profile.pattern === "warp" || profile.pattern === "prism") {
+    const extraScale = randomScaleVector(NEW_PATTERN_SCALE_RANGE);
+    if (directionScale) {
+      directionScale.multiply(extraScale);
+    } else {
+      directionScale = extraScale;
+    }
+  }
+  if (forceShowcase) {
+    directionScale = null;
+  }
   const directionChaosChance = nonSpherical
     ? NON_SPHERICAL_CHAOS_CHANCE
     : CHAOS_ROTATION_CHANCE;
@@ -3077,9 +3328,21 @@ function buildExplosionOptions(
     : CHAOS_SCALE_RANGE;
   const trailBrightness =
     (droopTrail ? DROOP_TRAIL_BRIGHTNESS : 1) * BASE_TRAIL_BRIGHTNESS;
+  const crossTrailBrightness =
+    profile.pattern === "cross"
+      ? trailBrightness * CROSS_TRAIL_BRIGHTNESS_BOOST
+      : trailBrightness;
+  const warpTrailBrightness =
+    profile.pattern === "warp"
+      ? crossTrailBrightness * WARP_TRAIL_BRIGHTNESS_BOOST
+      : crossTrailBrightness;
+  const supernovaTrailBrightness =
+    profile.pattern === "supernova"
+      ? warpTrailBrightness * SUPERNOVA_TRAIL_BRIGHTNESS_BOOST
+      : warpTrailBrightness;
   const showcaseTrailBrightness = forceShowcase
     ? trailBrightness * FIRST_CLICK_TRAIL_BRIGHTNESS
-    : trailBrightness;
+    : supernovaTrailBrightness;
   const snowflake = Math.random() < SNOWFLAKE_TRAJECTORY_CHANCE;
   const baseDrag = range(profile.drag);
   const dragBoost =
@@ -3089,6 +3352,15 @@ function buildExplosionOptions(
     (spaghettiDroop ? SPAGHETTI_DROOP_DRAG_BOOST : 0) +
     (snowflake ? SNOWFLAKE_DRAG_BOOST : 0);
   const drag = dragBoost > 0 ? Math.min(baseDrag + dragBoost, 0.995) : baseDrag;
+  const subBurstProfile = explosionProfiles.find(
+    (entry) => entry.pattern === "sparkburst"
+  );
+  const rainbowSubBurstProfile = explosionProfiles.find(
+    (entry) => entry.pattern === RAINBOW_SUB_BURST_PATTERN
+  );
+  const subBurst = Math.random() < SUB_BURST_CHANCE && !!subBurstProfile;
+  const effectiveSubBurstProfile =
+    multiHue && rainbowSubBurstProfile ? rainbowSubBurstProfile : subBurstProfile;
 
   return {
     pattern: profile.pattern,
@@ -3240,30 +3512,96 @@ function buildExplosionOptions(
         (spaghetti ? SPAGHETTI_TWIST_MULTIPLIER : 1) *
         spaghettiVariance
       : 1,
+    subBurst,
+    subBurstProfile: effectiveSubBurstProfile,
+    subBurstHue: baseHue,
   };
 }
 
-function flashColorFromHue(hue) {
+function flashColorFromHue(hue, options = {}) {
+  const {
+    variance = FLASH_COLOR_VARIANCE,
+    saturationRange = FLASH_COLOR_SATURATION,
+    lightnessRange = FLASH_COLOR_LIGHTNESS,
+    intensityScale = 1,
+  } = options;
   const baseHue = hue ?? Math.random();
-  const flashHue = (baseHue + rand(-FLASH_COLOR_VARIANCE, FLASH_COLOR_VARIANCE) + 1) % 1;
-  return hslColor(
-    flashHue,
-    rand(FLASH_COLOR_SATURATION[0], FLASH_COLOR_SATURATION[1]),
-    rand(FLASH_COLOR_LIGHTNESS[0], FLASH_COLOR_LIGHTNESS[1])
-  );
+  const flashHue = (baseHue + rand(-variance, variance) + 1) % 1;
+  const saturation = rand(saturationRange[0], saturationRange[1]);
+  const lightness = rand(lightnessRange[0], lightnessRange[1]);
+  const color = hslColor(flashHue, saturation, lightness);
+  color.multiplyScalar(COLOR_GLOBAL_INTENSITY_SCALE);
+  if (lightness >= HIGH_LIGHTNESS_THRESHOLD) {
+    color.multiplyScalar(HIGH_LIGHTNESS_INTENSITY_SCALE);
+  } else if (lightness <= LOW_LIGHTNESS_THRESHOLD) {
+    color.multiplyScalar(LOW_LIGHTNESS_INTENSITY_SCALE);
+  }
+  color.multiplyScalar(intensityScale);
+  return color;
 }
 
 function spawnFlash(position, hue, options = {}) {
+  if (!options.spherical || !options.direct) {
+    return;
+  }
   if (Math.random() > FLASH_CHANCE) {
     return;
   }
 
-  const sphericalBoost = options.spherical ? FLASH_SPHERICAL_BRIGHTNESS_BOOST : 1;
-  const mainFlash = new Flash(position, flashColorFromHue(hue), {
+  const intensityBlend = options.intensityScale ?? 1;
+  const colorBlend = 0.75 + intensityBlend * 0.5;
+  const sphericalBoost =
+    (options.spherical ? FLASH_SPHERICAL_BRIGHTNESS_BOOST : 1) * intensityBlend;
+  const sphericalSizeBoost = options.spherical ? FLASH_SPHERICAL_SIZE_BOOST : 1;
+  const mainFlash = new Flash(
+    position,
+    flashColorFromHue(hue, { intensityScale: colorBlend }),
+    {
     opacityScale: sphericalBoost,
-  });
+    sizeScale: sphericalSizeBoost,
+    }
+  );
   flashes.push(mainFlash);
   scene.add(mainFlash.sprite);
+
+  const outerHue = (hue ?? Math.random());
+  const outerColor = flashColorFromHue(outerHue, {
+    lightnessRange: FLASH_SPHERICAL_OUTER_LIGHTNESS,
+    intensityScale: colorBlend,
+  });
+  const outerFlash = new Flash(position, outerColor, {
+    opacityScale: sphericalBoost * FLASH_SPHERICAL_OUTER_OPACITY_SCALE,
+    sizeScale: sphericalSizeBoost * FLASH_SPHERICAL_OUTER_SCALE,
+    lifeScale: FLASH_SPHERICAL_OUTER_LIFE_SCALE,
+  });
+  flashes.push(outerFlash);
+  scene.add(outerFlash.sprite);
+
+  const firebowlCount = randInt(FLASH_FIREBOWL_COUNT[0], FLASH_FIREBOWL_COUNT[1]);
+  for (let i = 0; i < firebowlCount; i += 1) {
+    const angle = rand(0, Math.PI * 2);
+    const radius = rand(FLASH_FIREBOWL_OFFSET[0], FLASH_FIREBOWL_OFFSET[1]);
+    const offset = new THREE.Vector3(
+      Math.cos(angle) * radius,
+      Math.sin(angle) * radius,
+      0
+    );
+    const fireHue =
+      (hue ?? Math.random()) + rand(FLASH_FIREBOWL_HUE_SHIFT[0], FLASH_FIREBOWL_HUE_SHIFT[1]);
+    const fireColor = flashColorFromHue((fireHue + 1) % 1, {
+      saturationRange: [1, 1],
+      lightnessRange: FLASH_FIREBOWL_LIGHTNESS,
+      intensityScale: colorBlend,
+    });
+    const fireFlash = new Flash(position, fireColor, {
+      sizeScale: range(FLASH_FIREBOWL_SIZE_SCALE) * sphericalSizeBoost,
+      opacityScale: range(FLASH_FIREBOWL_OPACITY_SCALE) * sphericalBoost,
+      lifeScale: range(FLASH_FIREBOWL_LIFE_SCALE),
+      offset,
+    });
+    flashes.push(fireFlash);
+    scene.add(fireFlash.sprite);
+  }
 
   const burstCount = randInt(FLASH_BURST_COUNT[0], FLASH_BURST_COUNT[1]);
   for (let i = 0; i < burstCount; i += 1) {
@@ -3274,12 +3612,16 @@ function spawnFlash(position, hue, options = {}) {
       Math.sin(angle) * radius,
       0
     );
-    const burstFlash = new Flash(position, flashColorFromHue(hue), {
-      sizeScale: range(FLASH_BURST_SIZE_SCALE),
+    const burstFlash = new Flash(
+      position,
+      flashColorFromHue(hue, { intensityScale: colorBlend }),
+      {
+      sizeScale: range(FLASH_BURST_SIZE_SCALE) * sphericalSizeBoost,
       opacityScale: range(FLASH_BURST_OPACITY_SCALE) * sphericalBoost,
       lifeScale: range(FLASH_BURST_LIFE_SCALE),
       offset,
-    });
+      }
+    );
     flashes.push(burstFlash);
     scene.add(burstFlash.sprite);
   }
@@ -3407,8 +3749,18 @@ function clampToView(position) {
   );
 }
 
-function chooseProfile(forceSpherical = false) {
-  const excluded = new Set(lastClickSignature ? lastClickSignature.split("|") : []);
+function chooseProfile(forceSpherical = false, forcePattern = null) {
+  const excluded = new Set(patternHistory.slice(0, PATTERN_REPEAT_WINDOW));
+  if (forcePattern) {
+    const forced = explosionProfiles.filter(
+      (profile) => profile.pattern === forcePattern
+    );
+    if (forced.length) {
+      const profile = pick(forced);
+      remember(patternHistory, profile.pattern, PATTERN_REPEAT_WINDOW);
+      return profile;
+    }
+  }
   const sphericalPool = explosionProfiles.filter(
     (profile) => profile.spherical && !excluded.has(profile.pattern)
   );
@@ -3435,8 +3787,12 @@ function chooseProfile(forceSpherical = false) {
     profile = pick(explosionProfiles);
   }
 
-  lastClickSignature = profile.pattern;
+  remember(patternHistory, profile.pattern, PATTERN_REPEAT_WINDOW);
   return profile;
+}
+
+function flashIntensityBlend() {
+  return 1 / (1 + COLOR_GLOBAL_INTENSITY_SCALE * 0.25 + LOW_LIGHTNESS_INTENSITY_SCALE * 0.05);
 }
 
 function scheduleSingleDetonation(
@@ -3445,12 +3801,27 @@ function scheduleSingleDetonation(
   clickDroop = false,
   clickCurly = false,
   forceSpherical = false,
-  forceShowcase = false
+  forceShowcase = false,
+  forcePattern = null
 ) {
-  let profile = chooseProfile(forceSpherical);
+  let profile = chooseProfile(forceSpherical, forcePattern);
+  if (forcePattern) {
+    const forced = explosionProfiles.find(
+      (candidate) => candidate.pattern === forcePattern
+    );
+    if (forced) {
+      profile = forced;
+      remember(patternHistory, profile.pattern, PATTERN_REPEAT_WINDOW);
+    }
+  }
   let forceStraight = false;
 
-  if (clickCurly && Math.random() < SPAGHETTI_TO_CROSS_CHANCE) {
+  if (
+    !forcePattern &&
+    clickCurly &&
+    Math.random() < SPAGHETTI_TO_CROSS_CHANCE &&
+    !patternHistory.includes("cross")
+  ) {
     const crossPool = explosionProfiles.filter(
       (candidate) => candidate.pattern === "cross"
     );
@@ -3458,10 +3829,15 @@ function scheduleSingleDetonation(
       profile = pick(crossPool);
       clickCurly = false;
       forceStraight = true;
-      lastClickSignature = profile.pattern;
+      remember(patternHistory, profile.pattern, PATTERN_REPEAT_WINDOW);
     }
   }
-  spawnFlash(origin, baseHue, { spherical: profile.spherical });
+  const intensityBlend = flashIntensityBlend();
+  spawnFlash(origin, baseHue, {
+    spherical: profile.pattern === "sphere",
+    direct: true,
+    intensityScale: intensityBlend,
+  });
 
   detonationQueue.push({
     time: elapsedTime,
@@ -3476,13 +3852,27 @@ function scheduleSingleDetonation(
 }
 
 function scheduleDetonation(origin) {
-  const baseHue = pick(PURE_HUES);
+  const baseHue = pickAvoidRecent(SOLID_HUES, hueHistory, HUE_REPEAT_WINDOW);
+  remember(hueHistory, baseHue, HUE_REPEAT_WINDOW);
+  if (firstClick) {
+    scheduleSingleDetonation(
+      origin,
+      baseHue,
+      false,
+      false,
+      true,
+      true,
+      FIRST_CLICK_FORCE_PATTERN
+    );
+    firstClick = false;
+    return;
+  }
   const clickDroop = Math.random() < CLICK_DROOP_CHANCE;
   const clickCurly = Math.random() < CLICK_CURLY_CHANCE;
-  const forceSpherical = firstClick;
-  const forceShowcase = firstClick;
-  const launchRocket = !firstClick && Math.random() < ROCKET_LAUNCH_CHANCE;
-  firstClick = false;
+  const forceSpherical = false;
+  const forceShowcase = false;
+  const launchRocket = Math.random() < ROCKET_LAUNCH_CHANCE;
+  const forcePattern = null;
   if (launchRocket) {
     const profile = chooseProfile(true);
     const flightTime = range(ROCKET_FLIGHT_TIME);
@@ -3524,7 +3914,8 @@ function scheduleDetonation(origin) {
       clickDroop,
       clickCurly,
       forceSpherical,
-      forceShowcase
+      forceShowcase,
+      forcePattern
     );
   }
 }
