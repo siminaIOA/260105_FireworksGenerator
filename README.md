@@ -12,8 +12,9 @@
 - First-click showcase blast that always forces a perfectly spherical, intense firework
 - Sub-burst fireworks: falling head particles spawn mini explosions, including rainbow variants
 - Solid, intense color palette with Ferrari red spherical bursts and limited rainbow use
-- Lightning-style center flashes blended to spherical bursts only
+- Lightning-style center flashes blended to spherical bursts only, now a tighter ultra-bright core
 - Non-spherical chaos: flips, rotations, mirroring, and cross emphasis
+- Faint-firework intensity boosting to avoid washed-out bursts
 
 ## Getting Started
 1. `npm install`
@@ -24,7 +25,7 @@
 - Click on the canvas to detonate a firework at the cursor position
 
 ## Deployment
-Live demo: https://siminaIOA.github.io/260105_FireworksGenerator/
+Live demo: https://siminaIOA.github.io/260105_FireworksGenerator/gh-pages
 
 Build locally with relative asset paths:
 1. `npm install`
