@@ -1,8 +1,13 @@
 import * as THREE from "three";
 import "./style.css";
 
+const BUILD_STAMP = "2026-01-07T21:42Z";
 const canvas = document.querySelector("#canvas");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+const versionTag = document.querySelector("#version");
+if (versionTag) {
+  versionTag.textContent = `build ${BUILD_STAMP}`;
+}
 renderer.setPixelRatio(1);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000, 1);

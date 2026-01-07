@@ -53,6 +53,21 @@ body {
   animation: none;
 }
 
+#version {
+  position: fixed;
+  right: 18px;
+  bottom: 16px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  text-transform: uppercase;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
 @keyframes hintPulse {
   0% {
     opacity: 0.55;
